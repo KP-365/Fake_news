@@ -1,0 +1,9 @@
+transformers
+peft
+torch
+datasets
+scikit-learn
+gradio
+anthropic
+numpy
+matplotlib
