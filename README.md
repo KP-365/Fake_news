@@ -4,6 +4,8 @@ ECS7036P Group 10 project. Combines machine learning, external fact verification
 explainable AI into a single pipeline that classifies a claim, reports a calibrated
 confidence, surfaces conflicting fact-checks, and returns a human-readable explanation.
 
+**Deadline: 21 July 2026** (tentative — confirm against QMplus/module page).
+
 ## Team
 
 | Name | Email | Focus |

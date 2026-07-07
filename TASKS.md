@@ -4,14 +4,16 @@ Live status lives in [GitHub Issues](../../issues) and the
 [Project board](../../projects) — this file is the static map from the proposal's
 Contributions section to concrete, checkable tasks. Tick items off as issues close.
 
+**Deadline: 21 July 2026** (tentative — confirm against QMplus/module page).
+
 Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 
-## Milestone 0 — Setup
+## Milestone 0 — Setup (due 10 Jul)
 
 - [ ] Repo scaffold, `requirements.txt`, environment (Colab T4) — K
 - [ ] Acquire & load datasets: LIAR (primary), WELFake (backup) — E
 
-## Milestone 1 — Layer 1: Classification (owner: K)
+## Milestone 1 — Layer 1: Classification (owner: K, due 15 Jul)
 
 - [ ] BERT-base-uncased + LoRA fine-tuning (Hugging Face PEFT)
 - [ ] Monte Carlo Dropout for uncertainty estimation
@@ -20,7 +22,7 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [ ] Selective prediction: accuracy-on-retained as least-confident cases are deferred
 - [ ] Writing: Methodology, Implementation, classifier results figures
 
-## Milestone 2 — Layer 2: Verification (owner: E)
+## Milestone 2 — Layer 2: Verification (owner: E, due 15 Jul)
 
 - [ ] Data preprocessing & tokenisation pipeline (LIAR/WELFake)
 - [ ] Google Fact Check Tools API integration (PolitiFact, Snopes)
@@ -28,7 +30,7 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [ ] Analysis of conflict cases as hardest examples; verification layer coverage metric
 - [ ] Writing: Related Work, Results and Discussion, Conclusions
 
-## Milestone 3 — Layer 3: Explanation, Baselines & UI (owner: W)
+## Milestone 3 — Layer 3: Explanation, Baselines & UI (owner: W, due 18 Jul)
 
 - [ ] Baseline models + evaluation plots (comparison to BERT-LoRA)
 - [ ] Explanation agent (combines linguistic + verification + uncertainty signals)
@@ -36,7 +38,7 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [ ] Presentation slides
 - [ ] Writing: Introduction, Abstract, Evaluation, Contributions, formatting
 
-## Milestone 4 — Integration & Evaluation (team)
+## Milestone 4 — Integration & Evaluation (team, due 21 Jul — submission)
 
 - [ ] Faithfulness check: sample explanations reviewed against underlying signals
 - [ ] End-to-end demo test (classify → confidence → conflicts → explanation)
