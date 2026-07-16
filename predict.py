@@ -1,0 +1,94 @@
+"""Run inference with the fine-tuned RoBERTa LoRA checkpoint."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+from typing import Any
+
+CHECKPOINT_DIR = Path(__file__).resolve().parent / "models" / "roberta-trained-welfake"
+BASE_MODEL_NAME = "roberta-base"
+MAX_LENGTH = 256
+ID_TO_LABEL = {0: "fake", 1: "real"}
+
+
+def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
+    """Load the tokenizer, base model, and saved PEFT adapter."""
+    if not checkpoint_dir.is_dir():
+        raise FileNotFoundError(
+            f"Checkpoint not found at {checkpoint_dir}. "
+            "Finish training the notebook first."
+        )
+
+    classifier_head_path = checkpoint_dir / "classifier_head.pt"
+    if not classifier_head_path.is_file():
+        raise FileNotFoundError(
+            f"Classifier head not found at {classifier_head_path}. "
+            "Save classifier.state_dict() there before running prediction."
+        )
+
+    import torch
+    from peft import PeftModel
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
+    base_model = AutoModelForSequenceClassification.from_pretrained(
+        BASE_MODEL_NAME,
+        num_labels=2,
+        id2label=ID_TO_LABEL,
+        label2id={label: index for index, label in ID_TO_LABEL.items()},
+    )
+    model = PeftModel.from_pretrained(base_model, checkpoint_dir)
+    classifier_state = torch.load(
+        classifier_head_path, map_location="cpu", weights_only=True
+    )
+    base_model.classifier.load_state_dict(classifier_state)
+    model.to(device)
+    model.eval()
+    return model, tokenizer, device
+
+
+def predict(text: str, checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[str, float]:
+    """Predict a fake/real label and confidence for one text string."""
+    model, tokenizer, device = load_model(checkpoint_dir)
+    import torch
+    encoded = tokenizer(
+        text,
+        truncation=True,
+        max_length=MAX_LENGTH,
+        padding="max_length",
+        return_tensors="pt",
+    )
+    encoded = {name: tensor.to(device) for name, tensor in encoded.items()}
+
+    with torch.no_grad():
+        probabilities = torch.softmax(model(**encoded).logits, dim=-1)[0]
+
+    predicted_id = int(torch.argmax(probabilities).item())
+    return ID_TO_LABEL[predicted_id], float(probabilities[predicted_id].item())
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Classify text with the fine-tuned RoBERTa fake-news model."
+    )
+    parser.add_argument("text", help="Text to classify")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        label, confidence = predict(args.text)
+    except FileNotFoundError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+
+    print(f"{label} (confidence: {confidence:.2%})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
