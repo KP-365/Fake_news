@@ -10,7 +10,7 @@ from typing import Any
 CHECKPOINT_DIR = Path(__file__).resolve().parent / "models" / "roberta-trained-welfake"
 BASE_MODEL_NAME = "roberta-base"
 MAX_LENGTH = 256
-ID_TO_LABEL = {0: "fake", 1: "real"}
+ID_TO_LABEL = {0: "real", 1: "fake"}
 
 
 def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
