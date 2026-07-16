@@ -11,4 +11,5 @@ data/processed/*
 *.pt
 *.bin
 checkpoints/
+models/
 .DS_Store

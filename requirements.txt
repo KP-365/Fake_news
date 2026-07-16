@@ -7,3 +7,5 @@ gradio
 anthropic
 numpy
 matplotlib
+pandas
+kagglehub
