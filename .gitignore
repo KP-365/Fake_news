@@ -11,5 +11,10 @@ data/processed/*
 *.pt
 *.bin
 checkpoints/
-models/
+models/*
+!models/roberta-trained-welfake/
+!models/roberta-trained-welfake/*.json
+!models/roberta-trained-welfake/*.md
+!models/roberta-trained-welfake/*.pt
+!models/roberta-trained-welfake/*.safetensors
 .DS_Store
