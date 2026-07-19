@@ -7,13 +7,13 @@ Original file is located at
     https://colab.research.google.com/drive/1EoF7mSfwW5ISxDX9kOU2cXvXrxL7DCTH
 """
 
+from __future__ import annotations
+
 """Evidence-based verification tier: retrieve evidence + NLI entailment check.
 
 Runs only on articles the classifier flagged as low-confidence (MC Dropout).
 Uses a pretrained NLI model zero-shot — nothing here is trained.
 """
-
-from __future__ import annotations
 
 from functools import lru_cache
 
