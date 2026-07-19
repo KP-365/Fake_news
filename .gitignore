@@ -18,3 +18,4 @@ models/*
 !models/roberta-trained-welfake/*.pt
 !models/roberta-trained-welfake/*.safetensors
 .DS_Store
+.gg/
