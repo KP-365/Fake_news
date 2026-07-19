@@ -6,8 +6,8 @@ This repository implements a three-stage research pipeline:
 2. route uncertain predictions to web-evidence retrieval and natural-language inference (NLI);
 3. explain the resulting decision from structured model signals only.
 
-The trained checkpoint and runnable scripts are committed to the repository. There is no
-Gradio application or public Hugging Face Space in the current implementation.
+The trained checkpoint, runnable scripts, and local Gradio interface are committed to the
+repository. A public Hugging Face Space has not been deployed.
 
 ## Implemented pipeline
 
@@ -79,7 +79,7 @@ The material deviations are explicit:
 | `bert-base-uncased` classifier | `roberta-base` with LoRA |
 | Google Fact Check Tools API and named fact-check sites | General DDG web retrieval followed by DeBERTa NLI |
 | Claude Sonnet explanation layer | Anthropic `claude-haiku-4-5`, using numbers only |
-| Gradio UI and Hugging Face Spaces deployment | Not implemented |
+| Gradio UI and Hugging Face Spaces deployment | Local Gradio UI implemented; public deployment not implemented |
 
 Results in this repository therefore measure in-dataset WELFake performance. They should not be
 presented as LIAR results or as evidence of cross-dataset generalisation.
@@ -152,6 +152,16 @@ This runs classification, 30-pass MC Dropout, DDG + NLI verification, and the nu
 explanation. The classifier label remains final; NLI is explanation context only. Without an
 Anthropic key, the command still prints every non-explanation result and a clear setup note.
 
+### Launch the local Gradio interface
+
+```bash
+python3 app.py
+```
+
+Open `http://127.0.0.1:7860`. The app loads the classifier once at startup and presents the
+fixed label, uncertainty, context-only evidence links, NLI verdict, and Claude explanation.
+Without an Anthropic key, all other results remain available with a setup note.
+
 ## Run the evaluation notebooks
 
 Use a Colab GPU runtime, then choose **Runtime → Run all**.
@@ -181,6 +191,7 @@ predict.py                                  RoBERTa-LoRA command-line inference
 verify.py                                   DDG retrieval and DeBERTa NLI verification
 explain.py                                  numbers-only Anthropic explanation
 pipeline.py                                 end-to-end command with fixed classifier label
+app.py                                      local Gradio interface
 scaffold_FakeNews_finn's_training.ipynb     WELFake training notebook
 eval_FakeNews.ipynb                         held-out classifier and baseline evaluation
 eval_MCFakeNews.ipynb                       MC Dropout/calibration evaluation

@@ -12,9 +12,11 @@ MODEL_NAME = "claude-haiku-4-5"
 MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
 The supplied classifier label is final. Do not reclassify it, question it, second-guess it,
-or propose a different label. Explain only how the supplied structured signals relate to
-that decision. Use plain English, avoid jargon, and write two or three concise sentences.
-Do not infer article content, evidence details, or facts that were not supplied."""
+or imply that another label may be more accurate. Explain only how the supplied structured
+signals relate to that fixed decision. If NLI conflicts with the label, describe the conflict
+as context and explicitly state that it does not change the classifier label. Use plain English,
+avoid jargon and em dashes, and write two or three concise sentences. Do not infer article
+content, evidence details, or facts that were not supplied."""
 
 
 def _validate_probability(name: str, value: float) -> None:
@@ -62,8 +64,9 @@ def explain_decision(
     prompt = (
         "Explain why the system reported the fixed classifier label using only these "
         "signals. Treat higher MC Dropout uncertainty as greater model uncertainty. "
-        "Mention when the NLI evidence supports, refutes, or cannot resolve the label, "
-        "but do not alter or second-guess the label.\n\n"
+        "Mention when the NLI evidence supports, refutes, or cannot resolve the label. "
+        "A conflicting NLI verdict is context only: state that it does not change the "
+        "classifier label, and do not imply the label is wrong.\n\n"
         f"Structured signals:\n{json.dumps(signals, indent=2)}"
     )
 

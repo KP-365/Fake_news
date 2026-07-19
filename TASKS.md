@@ -46,7 +46,7 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [x] Implement numbers-only Anthropic explanations in `explain.py` - W
 - [x] Prevent the explanation prompt from reclassifying or second-guessing the fixed label - W
 - [x] Connect `explain.py` to a single end-to-end classifier → verifier → explainer command
-- [ ] Build a Gradio interface
+- [x] Build a local Gradio interface
 - [ ] Deploy publicly on Hugging Face Spaces
 - [ ] Produce presentation slides
 - [ ] Complete Introduction, Abstract, Evaluation, Contributions, and formatting
@@ -61,6 +61,6 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 ## Current scope
 
 The validated implementation is a **RoBERTa-LoRA classifier trained and tested on WELFake**,
-with MC Dropout evaluation, DDG + DeBERTa escalation code, and a standalone numbers-only
-Anthropic explanation function. It is not the proposed BERT-on-LIAR system, and no Gradio or
+with MC Dropout evaluation, DDG + DeBERTa verification, a numbers-only Anthropic explanation
+function, and a local Gradio interface. It is not the proposed BERT-on-LIAR system, and no
 Hugging Face Spaces deployment is currently present.

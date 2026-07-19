@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 import torch
 from dotenv import load_dotenv
@@ -15,9 +16,19 @@ MC_PASSES = 30
 FAKE_LABEL_ID = next(label_id for label_id, label in ID_TO_LABEL.items() if label == "fake")
 
 
-def classify_with_uncertainty(article_text: str) -> tuple[str, float, float]:
+def classify_with_uncertainty(
+    article_text: str,
+    *,
+    model: Any | None = None,
+    tokenizer: Any | None = None,
+    device: Any | None = None,
+) -> tuple[str, float, float]:
     """Return the fixed classifier label, confidence, and fake-probability std."""
-    model, tokenizer, device = load_model()
+    components = (model, tokenizer, device)
+    if all(component is None for component in components):
+        model, tokenizer, device = load_model()
+    elif any(component is None for component in components):
+        raise ValueError("model, tokenizer, and device must be provided together")
     encoded = tokenizer(
         article_text,
         truncation=True,
