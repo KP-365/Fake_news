@@ -90,12 +90,13 @@ presented as LIAR results or as evidence of cross-dataset generalisation.
 
 - RoBERTa-LoRA accuracy: **0.9957**;
 - RoBERTa-LoRA macro-F1: **0.9957**;
-- TF-IDF + logistic-regression macro-F1: **0.9520**;
+- TF-IDF + logistic-regression macro-F1: **0.9521**;
 - majority-class baseline macro-F1: **0.3559**;
 - confusion matrix: `[[5178, 15], [25, 4180]]`.
 
-These numbers cover the classifier evaluation only. No completed escalation CSV or explanation
-faithfulness study is committed.
+See the [results summary](docs/results-summary.md) for the full per-class and baseline metrics,
+the current calibration-output status, and the completed 100-article NLI escalation analysis.
+No explanation-faithfulness study has been completed.
 
 ## Setup
 
@@ -132,13 +133,14 @@ evidence. Retrieval status is flushed immediately so a slow search remains visib
 ### Run the hardcoded explanation example
 
 ```bash
-export ANTHROPIC_API_KEY="your-api-key"
+cp .env.example .env
+# Edit .env and fill in ANTHROPIC_API_KEY, then run:
 python3 explain.py
 ```
 
-For application code, import `explain_decision(...)` and provide the seven structured values
-listed above. The current CLI intentionally runs one hardcoded example; it does not accept
-article text.
+`explain.py` loads `.env` for its CLI example, and `.env` is excluded from Git. For application
+code, import `explain_decision(...)` and provide the seven structured values listed above. The
+current CLI intentionally runs one hardcoded example; it does not accept article text.
 
 ## Run the evaluation notebooks
 

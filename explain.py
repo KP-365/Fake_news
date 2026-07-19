@@ -6,6 +6,8 @@ import json
 import os
 import sys
 
+from dotenv import load_dotenv
+
 MODEL_NAME = "claude-3-5-haiku-latest"
 MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
@@ -88,6 +90,7 @@ def explain_decision(
 
 
 def main() -> int:
+    load_dotenv()
     try:
         explanation = explain_decision(
             classifier_label="real",

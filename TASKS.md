@@ -35,8 +35,9 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [x] Implement zero-shot DeBERTa NLI verdicts: supported/refuted/insufficient - E
 - [x] Gate the 100 lowest-confidence MC Dropout cases into verification - E
 - [x] Map NLI verdicts to a final label and write per-article escalation CSV rows - E
-- [ ] Complete and preserve a full 100-article escalation run
-- [ ] Analyse verification coverage, verdict distribution, and classifier/NLI disagreements
+- [x] Complete and preserve a full 100-article escalation run
+- [x] Analyse verdict distribution and classifier/NLI disagreements
+- [ ] Measure evidence-retrieval coverage
 - [ ] Complete verification Related Work, Results, Discussion, and Conclusions sections
 
 ## Milestone 3: Explanation, baselines, and interface
