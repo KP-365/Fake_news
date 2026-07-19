@@ -9,20 +9,25 @@ from typing import Any
 from urllib.parse import urlparse
 
 import gradio as gr
-from dotenv import load_dotenv
 
-from explain import explain_decision
+from explain import (
+    AnthropicKeyRejectedError,
+    MissingAnthropicKeyError,
+    explain_decision,
+)
 from pipeline import classify_with_uncertainty
-from predict import load_model
+from predict import describe_mc_stability, load_model
 from verify import verify_claim
 
 DEFAULT_ARTICLE = "Federal Reserve holds interest rates steady amid mixed economic data"
 MISSING_KEY_MESSAGE = (
-    "Explanation unavailable. Add ANTHROPIC_API_KEY to your .env file to enable "
-    "the Claude explanation step."
+    "Explanation unavailable. Add an Anthropic API key above to enable the Claude "
+    "explanation step."
+)
+REJECTED_KEY_MESSAGE = (
+    "Explanation unavailable: key rejected. Check the Anthropic API key and try again."
 )
 
-load_dotenv()
 CLASSIFIER_MODEL: Any | None = None
 CLASSIFIER_TOKENIZER: Any | None = None
 CLASSIFIER_DEVICE: Any | None = None
@@ -50,6 +55,7 @@ def _decision_html(
     classifier_label: str, confidence: float, uncertainty: float, verdict: str
 ) -> str:
     label_class = "label-real" if classifier_label == "real" else "label-fake"
+    stability = describe_mc_stability(uncertainty)
     return f"""
     <section class="decision-record" aria-label="Analysis result">
       <div class="decision-primary">
@@ -62,9 +68,9 @@ def _decision_html(
       </div>
       <dl class="signal-list">
         <div>
-          <dt>MC Dropout uncertainty</dt>
-          <dd>{uncertainty:.6f}</dd>
-          <span>Std. deviation of fake-class probability across 30 passes</span>
+          <dt>Prediction stability</dt>
+          <dd class="stability-value">{html.escape(stability)}</dd>
+          <span>MC Dropout uncertainty (fake-probability std): {uncertainty:.6f}</span>
         </div>
         <div>
           <dt>NLI verdict</dt>
@@ -123,8 +129,8 @@ def _evidence_html(evidence: list[dict], retrieval_note: str | None = None) -> s
     """
 
 
-def analyze_article(article_text: str) -> tuple[str, str, str]:
-    """Run the full pipeline with one shared classifier instance."""
+def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str]:
+    """Run the full pipeline with one shared classifier and an ephemeral API key."""
     article_text = article_text.strip()
     if not article_text:
         raise gr.Error("Enter a headline or article before running the analysis.")
@@ -166,25 +172,28 @@ def analyze_article(article_text: str) -> tuple[str, str, str]:
             max_entailment=max_entailment,
             max_contradiction=max_contradiction,
             evidence_count=len(evidence),
+            api_key=api_key.strip(),
         )
         explanation_markdown = (
             "### Claude explanation\n\n"
             f"{explanation.replace(chr(0x2014), ', ')}\n\n"
             "*Generated from structured scores only. No article or evidence text was sent to Claude.*"
         )
-    except RuntimeError as error:
-        if "ANTHROPIC_API_KEY is missing" in str(error):
-            explanation_markdown = f"### Claude explanation\n\n{MISSING_KEY_MESSAGE}"
-        else:
-            explanation_markdown = (
-                "### Claude explanation\n\n"
-                f"Explanation unavailable: {html.escape(str(error))}"
-            )
+    except MissingAnthropicKeyError:
+        explanation_markdown = f"### Claude explanation\n\n{MISSING_KEY_MESSAGE}"
+    except AnthropicKeyRejectedError:
+        explanation_markdown = f"### Claude explanation\n\n{REJECTED_KEY_MESSAGE}"
+    except RuntimeError:
+        explanation_markdown = (
+            "### Claude explanation\n\n"
+            "Explanation unavailable. The Claude service could not complete this request."
+        )
 
     return (
         _decision_html(classifier_label, confidence, uncertainty, verdict),
         _evidence_html(evidence, retrieval_note),
         explanation_markdown,
+        "",
     )
 
 
@@ -210,7 +219,9 @@ The numbers-only explanation will appear after analysis.
 
 def build_app() -> gr.Blocks:
     """Build the Gradio interface without reloading model weights."""
-    with gr.Blocks(title="News Signal Review", fill_width=False) as demo:
+    with gr.Blocks(
+        title="News Signal Review", fill_width=False, analytics_enabled=False
+    ) as demo:
         gr.HTML(
             """
             <header class="app-header">
@@ -242,6 +253,22 @@ def build_app() -> gr.Blocks:
                     placeholder="Paste a headline or article body",
                     elem_classes="article-input",
                 )
+                with gr.Accordion(
+                    "Optional: Claude explanation key",
+                    open=False,
+                    elem_classes="api-key-accordion",
+                ):
+                    gr.Markdown(
+                        "Use your own Anthropic key for this request. It is cleared after analysis, never stored, and never added to the environment."
+                    )
+                    api_key_input = gr.Textbox(
+                        label="Anthropic API key",
+                        type="password",
+                        placeholder="sk-ant-...",
+                        info="Leave empty to run classification and verification without Claude.",
+                        elem_classes="api-key-input",
+                        preserved_by_key=[],
+                    )
                 analyze_button = gr.Button(
                     "Analyze article",
                     variant="primary",
@@ -260,18 +287,25 @@ def build_app() -> gr.Blocks:
                     INITIAL_EXPLANATION, elem_classes="explanation-output"
                 )
 
-        outputs = [decision_output, evidence_output, explanation_output]
+        inputs = [article_input, api_key_input]
+        outputs = [decision_output, evidence_output, explanation_output, api_key_input]
         analyze_button.click(
             fn=analyze_article,
-            inputs=article_input,
+            inputs=inputs,
             outputs=outputs,
-            api_name="analyze",
+            api_visibility="private",
         )
         article_input.submit(
             fn=analyze_article,
-            inputs=article_input,
+            inputs=inputs,
             outputs=outputs,
-            api_name=False,
+            api_visibility="private",
+        )
+        api_key_input.submit(
+            fn=analyze_article,
+            inputs=inputs,
+            outputs=outputs,
+            api_visibility="private",
         )
 
     return demo.queue(max_size=8, default_concurrency_limit=1)
@@ -408,11 +442,38 @@ body,
   line-height: 1.55 !important;
 }
 
-.article-input .info {
+.article-input .info,
+.api-key-input .info {
   color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+.api-key-accordion {
+  overflow: hidden;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: #faf8f2 !important;
+}
+
+.api-key-accordion p {
+  color: var(--muted) !important;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.api-key-input input {
+  color: var(--ink) !important;
+  background: #ffffff !important;
+}
+
+.article-input textarea::placeholder,
+.api-key-input input::placeholder {
+  color: #5f6b76 !important;
+  opacity: 1 !important;
 }
 
 .article-input textarea:focus-visible,
+.api-key-input input:focus-visible,
 .primary-action:focus-visible,
 a:focus-visible {
   outline: 3px solid var(--focus) !important;
@@ -524,6 +585,12 @@ a:focus-visible {
   color: var(--ink);
   font-size: 1.25rem;
   font-weight: 500;
+}
+
+.signal-list .stability-value {
+  color: var(--cobalt-dark);
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .signal-list span {

@@ -22,6 +22,7 @@ The visual thesis is an editorial evidence desk: warm paper-toned canvas, ink-fi
 - **Geometry:** 8px spacing rhythm, 12px control radius, 16px panel radius, shared left edges, 44px minimum action height.
 - **Motion:** named color, border, background, and shadow transitions only; reduced motion removes interpolation.
 - **Responsive behavior:** two columns on wide screens, one ordered column below 880px, with input before results.
+- **Uncertainty language:** one shared threshold map converts raw MC variation into a prominent stability label while retaining the raw number as secondary detail.
 
 ## States and checks
 
@@ -29,6 +30,8 @@ The visual thesis is an editorial evidence desk: warm paper-toned canvas, ink-fi
 - Queued analysis exposes Gradio's pending state and permits one model request at a time.
 - Success preserves the final label while marking NLI and evidence as context only.
 - Missing Anthropic key leaves classifier and verifier results visible with setup guidance.
+- The optional password field is per-request, is cleared after analysis, and is never copied into the environment or error output.
+- A rejected Anthropic key produces fixed guidance without exposing provider error details or changing other results.
 - Retrieval or NLI failure leaves the classifier label intact and identifies verification as unavailable.
 - Evidence URLs are restricted to HTTP(S), escaped, and opened in a new tab.
 - Desktop and mobile screenshots, keyboard focus, contrast, 200% text, reduced motion, and long evidence content are the release checks for this page.

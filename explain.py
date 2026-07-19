@@ -19,6 +19,14 @@ avoid jargon and em dashes, and write two or three concise sentences. Do not inf
 content, evidence details, or facts that were not supplied."""
 
 
+class MissingAnthropicKeyError(RuntimeError):
+    """Raised when neither a per-request nor environment API key is available."""
+
+
+class AnthropicKeyRejectedError(RuntimeError):
+    """Raised when Anthropic rejects the supplied API key."""
+
+
 def _validate_probability(name: str, value: float) -> None:
     if not 0.0 <= value <= 1.0:
         raise ValueError(f"{name} must be between 0 and 1")
@@ -32,6 +40,7 @@ def explain_decision(
     max_entailment: float,
     max_contradiction: float,
     evidence_count: int,
+    api_key: str | None = None,
 ) -> str:
     """Explain a fixed decision using only structured classifier and NLI outputs."""
     if classifier_label not in {"real", "fake"}:
@@ -46,9 +55,13 @@ def explain_decision(
     if not isinstance(evidence_count, int) or evidence_count < 0:
         raise ValueError("evidence_count must be a non-negative integer")
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise RuntimeError(
+    resolved_api_key = (
+        os.getenv("ANTHROPIC_API_KEY", "").strip()
+        if api_key is None
+        else api_key.strip()
+    )
+    if not resolved_api_key:
+        raise MissingAnthropicKeyError(
             "ANTHROPIC_API_KEY is missing. Set it before requesting an explanation."
         )
 
@@ -70,9 +83,9 @@ def explain_decision(
         f"Structured signals:\n{json.dumps(signals, indent=2)}"
     )
 
-    from anthropic import APIError, Anthropic
+    from anthropic import APIError, Anthropic, AuthenticationError
 
-    client = Anthropic(api_key=api_key)
+    client = Anthropic(api_key=resolved_api_key)
     try:
         response = client.messages.create(
             model=MODEL_NAME,
@@ -81,8 +94,10 @@ def explain_decision(
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
-    except APIError as error:
-        raise RuntimeError(f"Anthropic explanation request failed: {error}") from error
+    except AuthenticationError:
+        raise AnthropicKeyRejectedError("Anthropic API key was rejected") from None
+    except APIError:
+        raise RuntimeError("Anthropic explanation request failed") from None
 
     explanation = "".join(
         block.text for block in response.content if block.type == "text"

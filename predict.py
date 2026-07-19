@@ -11,6 +11,21 @@ CHECKPOINT_DIR = Path(__file__).resolve().parent / "models" / "roberta-trained-w
 BASE_MODEL_NAME = "roberta-base"
 MAX_LENGTH = 256
 ID_TO_LABEL = {0: "real", 1: "fake"}
+# Upper bounds translate fake-probability variation into one shared stability label.
+MC_STABILITY_THRESHOLDS = (
+    (0.02, "Very stable"),
+    (0.05, "Stable"),
+    (0.10, "Somewhat unstable"),
+    (float("inf"), "Unstable"),
+)
+
+
+def describe_mc_stability(uncertainty: float) -> str:
+    """Return the plain-language label for an MC Dropout uncertainty value."""
+    return next(
+        label for upper_bound, label in MC_STABILITY_THRESHOLDS
+        if uncertainty < upper_bound
+    )
 
 
 def enable_mc_dropout(model: Any) -> None:

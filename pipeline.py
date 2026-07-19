@@ -8,8 +8,14 @@ from typing import Any
 import torch
 from dotenv import load_dotenv
 
-from explain import explain_decision
-from predict import ID_TO_LABEL, MAX_LENGTH, enable_mc_dropout, load_model
+from explain import MissingAnthropicKeyError, explain_decision
+from predict import (
+    ID_TO_LABEL,
+    MAX_LENGTH,
+    describe_mc_stability,
+    enable_mc_dropout,
+    load_model,
+)
 from verify import verify_claim
 
 MC_PASSES = 30
@@ -81,14 +87,13 @@ def run_pipeline(article_text: str) -> None:
             max_contradiction=max_contradiction,
             evidence_count=evidence_count,
         )
-    except RuntimeError as error:
-        if "ANTHROPIC_API_KEY is missing" not in str(error):
-            raise
+    except MissingAnthropicKeyError:
         explanation = None
 
     print(f"Label: {classifier_label}")
     print(f"Confidence: {confidence:.2%}")
-    print(f"MC uncertainty (fake-probability std): {uncertainty:.6f}")
+    print(f"Prediction stability: {describe_mc_stability(uncertainty)}")
+    print(f"MC Dropout uncertainty (fake-probability std): {uncertainty:.6f}")
     print(f"NLI verdict (context only): {verdict}")
     if explanation is None:
         print(

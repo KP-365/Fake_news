@@ -159,8 +159,10 @@ python3 app.py
 ```
 
 Open `http://127.0.0.1:7860`. The app loads the classifier once at startup and presents the
-fixed label, uncertainty, context-only evidence links, NLI verdict, and Claude explanation.
-Without an Anthropic key, all other results remain available with a setup note.
+fixed label, plain-language stability with the raw uncertainty value, context-only evidence
+links, NLI verdict, and Claude explanation. An optional accordion accepts a per-request
+Anthropic key and clears it after analysis. Without a key, all other results remain available
+with a setup note.
 
 ## Run the evaluation notebooks
 
