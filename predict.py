@@ -67,7 +67,9 @@ def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
         id2label=ID_TO_LABEL,
         label2id={label: index for index, label in ID_TO_LABEL.items()},
     )
-    model = PeftModel.from_pretrained(base_model, checkpoint_dir)
+    model = PeftModel.from_pretrained(
+        base_model, checkpoint_dir, torch_device="cpu"
+    )
     classifier_state = torch.load(
         classifier_head_path, map_location="cpu", weights_only=True
     )
