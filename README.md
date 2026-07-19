@@ -1,3 +1,13 @@
+---
+title: News Signal Review
+emoji: 📰
+colorFrom: blue
+colorTo: yellow
+sdk: gradio
+sdk_version: 6.20.0
+app_file: app.py
+---
+
 # Fake-News Classification, Verification, and Explanation
 
 This repository implements a three-stage research pipeline:
