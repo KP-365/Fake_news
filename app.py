@@ -20,6 +20,7 @@ from predict import describe_mc_stability, load_model
 from verify import verify_claim
 
 DEFAULT_ARTICLE = "Federal Reserve holds interest rates steady amid mixed economic data"
+MAX_ARTICLE_CHARS = 5_000
 MISSING_KEY_MESSAGE = (
     "Explanation unavailable. Add an Anthropic API key above to enable the Claude "
     "explanation step."
@@ -52,10 +53,17 @@ def _safe_evidence_url(url: object) -> str | None:
 
 
 def _decision_html(
-    classifier_label: str, confidence: float, uncertainty: float, verdict: str
+    classifier_label: str,
+    confidence: float,
+    uncertainty: float,
+    verdict: str,
+    input_note: str | None = None,
 ) -> str:
     label_class = "label-real" if classifier_label == "real" else "label-fake"
     stability = describe_mc_stability(uncertainty)
+    note_markup = (
+        f'<p class="input-note">{html.escape(input_note)}</p>' if input_note else ""
+    )
     return f"""
     <section class="decision-record" aria-label="Analysis result">
       <div class="decision-primary">
@@ -65,6 +73,7 @@ def _decision_html(
           <span class="confidence-value">{confidence:.2%} confidence</span>
         </div>
         <p>The classifier label is final. Verification is supporting context only.</p>
+        {note_markup}
       </div>
       <dl class="signal-list">
         <div>
@@ -129,12 +138,10 @@ def _evidence_html(evidence: list[dict], retrieval_note: str | None = None) -> s
     """
 
 
-def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str]:
-    """Run the full pipeline with one shared classifier and an ephemeral API key."""
-    article_text = article_text.strip()
-    if not article_text:
-        raise gr.Error("Enter a headline or article before running the analysis.")
-
+def _run_analysis(
+    article_text: str, api_key: str, input_note: str | None
+) -> tuple[str, str, str]:
+    """Run the model, retrieval, and optional explanation stages."""
     if any(
         component is None
         for component in (CLASSIFIER_MODEL, CLASSIFIER_TOKENIZER, CLASSIFIER_DEVICE)
@@ -172,7 +179,7 @@ def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str
             max_entailment=max_entailment,
             max_contradiction=max_contradiction,
             evidence_count=len(evidence),
-            api_key=api_key.strip(),
+            api_key=api_key,
         )
         explanation_markdown = (
             "### Claude explanation\n\n"
@@ -190,11 +197,59 @@ def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str
         )
 
     return (
-        _decision_html(classifier_label, confidence, uncertainty, verdict),
+        _decision_html(
+            classifier_label, confidence, uncertainty, verdict, input_note
+        ),
         _evidence_html(evidence, retrieval_note),
         explanation_markdown,
-        "",
     )
+
+
+def _analysis_error_outputs(message: str) -> tuple[str, str, str]:
+    """Return a safe UI state without including request data."""
+    decision = f"""
+    <section class="decision-record decision-empty" aria-label="Analysis unavailable">
+      <span class="signal-label">Analysis unavailable</span>
+      <h2>Could not analyze this article</h2>
+      <p>{html.escape(message)}</p>
+    </section>
+    """
+    evidence = _evidence_html([], "Analysis did not run, so no evidence was retrieved.")
+    explanation = "### Claude explanation\n\nNo explanation was generated."
+    return decision, evidence, explanation
+
+
+def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str]:
+    """Bound input size and clear the ephemeral API key on every return path."""
+    normalized_key = ""
+    try:
+        normalized_key = str(api_key or "").strip()
+        raw_article = str(article_text or "")
+        was_truncated = len(raw_article) > MAX_ARTICLE_CHARS
+        bounded_article = raw_article[:MAX_ARTICLE_CHARS].strip()
+
+        if not bounded_article:
+            outputs = _analysis_error_outputs(
+                "Enter a headline or article before running the analysis."
+            )
+        else:
+            input_note = (
+                f"Input was truncated to the first {MAX_ARTICLE_CHARS:,} characters "
+                "before analysis."
+                if was_truncated
+                else None
+            )
+            outputs = _run_analysis(bounded_article, normalized_key, input_note)
+    except Exception:
+        outputs = _analysis_error_outputs(
+            "The analysis could not be completed. Try again with shorter text."
+        )
+
+    if normalized_key:
+        outputs = tuple(
+            output.replace(normalized_key, "[redacted]") for output in outputs
+        )
+    return outputs[0], outputs[1], outputs[2], ""
 
 
 INITIAL_DECISION = """
@@ -634,6 +689,15 @@ a:focus-visible {
   padding: 12px 14px;
   border-left: 3px solid #b48538;
   background: #fff8e8;
+}
+
+.input-note {
+  margin: 12px 0 0 !important;
+  padding: 10px 12px;
+  border-left: 3px solid #b48538;
+  color: var(--context) !important;
+  background: #fff8e8;
+  font-size: 0.82rem;
 }
 
 .evidence-list {

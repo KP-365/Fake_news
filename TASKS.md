@@ -47,14 +47,14 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [x] Prevent the explanation prompt from reclassifying or second-guessing the fixed label - W
 - [x] Connect `explain.py` to a single end-to-end classifier → verifier → explainer command
 - [x] Build a local Gradio interface
-- [ ] Deploy publicly on Hugging Face Spaces
+- [x] Deploy publicly on Hugging Face Spaces
 - [ ] Produce presentation slides
 - [ ] Complete Introduction, Abstract, Evaluation, Contributions, and formatting
 
 ## Milestone 4: Integration and submission
 
 - [ ] Review a sample of generated explanations for faithfulness to the structured signals
-- [ ] Run and document an end-to-end demo test
+- [x] Run and document an end-to-end demo test
 - [ ] Evaluate cross-dataset generalisation or clearly scope conclusions to WELFake
 - [ ] Assemble the final report and submission checklist
 
@@ -62,5 +62,5 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 
 The validated implementation is a **RoBERTa-LoRA classifier trained and tested on WELFake**,
 with MC Dropout evaluation, DDG + DeBERTa verification, a numbers-only Anthropic explanation
-function, and a local Gradio interface. It is not the proposed BERT-on-LIAR system, and no
-Hugging Face Spaces deployment is currently present.
+function, a local Gradio interface, and a public ZeroGPU Space. It is not the proposed
+BERT-on-LIAR system.

@@ -11,14 +11,16 @@ app_file: app.py
 
 # Fake-News Classification, Verification, and Explanation
 
+[![Open in Hugging Face Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm.svg)](https://wf1212-fake-news-detector.hf.space)
+
 This repository implements a three-stage research pipeline:
 
 1. classify a news article as **real** or **fake** with a fine-tuned RoBERTa model;
 2. route uncertain predictions to web-evidence retrieval and natural-language inference (NLI);
 3. explain the resulting decision from structured model signals only.
 
-The trained checkpoint, runnable scripts, and local Gradio interface are committed to the
-repository. A public Hugging Face Space has not been deployed.
+The trained checkpoint, runnable scripts, local Gradio interface, and public Hugging Face Space
+are available from this repository.
 
 ## Implemented pipeline
 
@@ -90,7 +92,7 @@ The material deviations are explicit:
 | `bert-base-uncased` classifier | `roberta-base` with LoRA |
 | Google Fact Check Tools API and named fact-check sites | General DDG web retrieval followed by DeBERTa NLI |
 | Claude Sonnet explanation layer | Anthropic `claude-haiku-4-5`, using numbers only |
-| Gradio UI and Hugging Face Spaces deployment | Local Gradio UI implemented; public deployment not implemented |
+| Gradio UI and Hugging Face Spaces deployment | Public ZeroGPU Gradio Space deployed |
 
 Results in this repository therefore measure in-dataset WELFake performance. They should not be
 presented as LIAR results or as evidence of cross-dataset generalisation.
@@ -174,6 +176,9 @@ fixed label, plain-language stability with the raw uncertainty value, context-on
 links, NLI verdict, and Claude explanation. An optional accordion accepts a per-request
 Anthropic key and clears it after analysis. Without a key, all other results remain available
 with a setup note.
+
+**Try the live demo:** https://wf1212-fake-news-detector.hf.space runs on ZeroGPU; the Claude
+explanation is optional and uses a bring-your-own Anthropic key.
 
 ## Run the evaluation notebooks
 

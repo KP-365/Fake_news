@@ -99,4 +99,6 @@ future escalation policy with evidence-quality checks and validated score thresh
 - The escalation experiment covers the 100 least-confident test articles, not the full 9,398.
 - DDG search results are live web data and can change between runs.
 - No numerical calibration result is currently preserved in the MC Dropout notebook outputs.
+- The live ZeroGPU Space is available at https://wf1212-fake-news-detector.hf.space; an end-to-end
+  `gradio_client` test on 19 July 2026 completed in 20.5 seconds.
 - No explanation-faithfulness or human-evaluation result has been completed.
