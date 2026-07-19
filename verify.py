@@ -15,12 +15,15 @@ Runs only on articles the classifier flagged as low-confidence (MC Dropout).
 Uses a pretrained NLI model zero-shot — nothing here is trained.
 """
 
+import multiprocessing
 from functools import lru_cache
+from multiprocessing.connection import Connection
 
 # FEVER-trained NLI model (good for claim verification). Zero-shot.
 NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 DEFAULT_TOP_K = 5
 DEFAULT_VERDICT_THRESHOLD = 0.6  # gamma in the methodology
+DDG_HARD_TIMEOUT_SECONDS = 15
 
 
 @lru_cache(maxsize=1)
@@ -57,6 +60,51 @@ def nli_scores(premise: str, hypothesis: str, model_name: str = NLI_MODEL_NAME) 
     }
 
 
+def _ddg_search_worker(query: str, k: int, sender: Connection) -> None:
+    """Run DDG in an isolated process so a stuck network call can be terminated."""
+    try:
+        try:
+            from ddgs import DDGS  # current package name
+        except ImportError:
+            from duckduckgo_search import DDGS  # older name
+
+        with DDGS(timeout=10) as ddgs:
+            hits = list(ddgs.text(query, max_results=k))
+        sender.send({"hits": hits})
+    except Exception as error:
+        sender.send({"error": f"{type(error).__name__}: {error}"})
+    finally:
+        sender.close()
+
+
+def _search_ddg_with_hard_timeout(query: str, k: int) -> list[dict]:
+    """Return DDG results within a hard wall-clock limit."""
+    context = multiprocessing.get_context("spawn")
+    receiver, sender = context.Pipe(duplex=False)
+    process = context.Process(
+        target=_ddg_search_worker, args=(query, k, sender), daemon=True
+    )
+    process.start()
+    sender.close()
+
+    try:
+        if not receiver.poll(DDG_HARD_TIMEOUT_SECONDS):
+            raise TimeoutError(
+                f"DDG retrieval exceeded {DDG_HARD_TIMEOUT_SECONDS} seconds"
+            )
+        message = receiver.recv()
+    finally:
+        receiver.close()
+        process.join(timeout=0.1)
+        if process.is_alive():
+            process.terminate()
+            process.join()
+
+    if "error" in message:
+        raise RuntimeError(message["error"])
+    return message["hits"]
+
+
 def retrieve_evidence(claim: str, k: int = DEFAULT_TOP_K) -> list[dict]:
     """Retrieve up to k short evidence passages for a claim via web search (no API key).
 
@@ -64,22 +112,26 @@ def retrieve_evidence(claim: str, k: int = DEFAULT_TOP_K) -> list[dict]:
     Swap this for Wikipedia, a news API, or a fixed offline corpus if you want a
     fully reproducible evidence source (recommended for the report).
     """
-    try:
-        from ddgs import DDGS            # current package name
-    except ImportError:
-        from duckduckgo_search import DDGS  # older name
-
     query = claim.strip().splitlines()[0][:300]  # headline / first line searches best
+    print("Retrieving evidence...", flush=True)
+
+    try:
+        hits = _search_ddg_with_hard_timeout(query, k)
+    except Exception as error:
+        print(f"Evidence retrieval failed: {error}", flush=True)
+        hits = []
+
     evidence = []
-    with DDGS() as ddgs:
-        for hit in ddgs.text(query, max_results=k):
-            snippet = hit.get("body") or hit.get("snippet") or ""
-            if snippet:
-                evidence.append({
-                    "title": hit.get("title", ""),
-                    "snippet": snippet,
-                    "url": hit.get("href") or hit.get("url", ""),
-                })
+    for hit in hits:
+        snippet = hit.get("body") or hit.get("snippet") or ""
+        if snippet:
+            evidence.append({
+                "title": hit.get("title", ""),
+                "snippet": snippet,
+                "url": hit.get("href") or hit.get("url", ""),
+            })
+
+    print(f"Retrieved {len(evidence)} evidence result(s).", flush=True)
     return evidence
 
 

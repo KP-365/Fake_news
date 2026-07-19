@@ -133,8 +133,9 @@ def verify_low_confidence_bucket(
     for position, ((_, article), classifier_label) in enumerate(
         zip(bucket.iterrows(), classifier_labels, strict=True), start=1
     ):
+        claim = article["title"] or article["content"][:SNIPPET_LENGTH]
         try:
-            result = verify_claim(article["content"])
+            result = verify_claim(claim)
             verdict = result["verdict"]
         except Exception as error:
             print(f"Verification {position}/{len(bucket)} failed: {error}", file=sys.stderr)
