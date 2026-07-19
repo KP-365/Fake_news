@@ -37,6 +37,8 @@ def classify_with_uncertainty(
         model, tokenizer, device = load_model()
     elif any(component is None for component in components):
         raise ValueError("model, tokenizer, and device must be provided together")
+    execution_device = torch.device("cuda") if torch.cuda.is_available() else device
+    model.to(execution_device)
     encoded = tokenizer(
         article_text,
         truncation=True,
@@ -44,7 +46,9 @@ def classify_with_uncertainty(
         padding="max_length",
         return_tensors="pt",
     )
-    encoded = {name: tensor.to(device) for name, tensor in encoded.items()}
+    encoded = {
+        name: tensor.to(execution_device) for name, tensor in encoded.items()
+    }
 
     model.eval()
     with torch.no_grad():

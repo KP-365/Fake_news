@@ -54,9 +54,12 @@ def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
 
     import torch
     from peft import PeftModel
+    from spaces.config import Config
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cpu" if Config.zero_gpu else ("cuda" if torch.cuda.is_available() else "cpu")
+    )
     tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
     base_model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL_NAME,
