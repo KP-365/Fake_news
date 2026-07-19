@@ -293,7 +293,8 @@ def build_app() -> gr.Blocks:
             fn=analyze_article,
             inputs=inputs,
             outputs=outputs,
-            api_visibility="private",
+            api_name="analyze",
+            api_visibility="public",
         )
         article_input.submit(
             fn=analyze_article,

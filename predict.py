@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -54,11 +55,15 @@ def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
 
     import torch
     from peft import PeftModel
-    from spaces.config import Config
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+    is_zero_gpu = os.getenv("SPACES_ZERO_GPU", "").strip().lower() in {
+        "1",
+        "t",
+        "true",
+    }
     device = torch.device(
-        "cpu" if Config.zero_gpu else ("cuda" if torch.cuda.is_available() else "cpu")
+        "cpu" if is_zero_gpu else ("cuda" if torch.cuda.is_available() else "cpu")
     )
     tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
     base_model = AutoModelForSequenceClassification.from_pretrained(
