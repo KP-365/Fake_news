@@ -92,7 +92,9 @@ def mc_dropout_predictions(
     predicted_labels: list[np.ndarray] = []
     confidences: list[np.ndarray] = []
 
-    for start in range(0, len(texts), BATCH_SIZE):
+    for batch_number, start in enumerate(
+        range(0, len(texts), BATCH_SIZE), start=1
+    ):
         batch_texts = texts[start : start + BATCH_SIZE]
         encoded = tokenizer(
             batch_texts,
@@ -116,9 +118,10 @@ def mc_dropout_predictions(
         confidences.append(batch_confidences.cpu().numpy())
 
         completed = min(start + BATCH_SIZE, len(texts))
-        print(f"MC Dropout: {completed:,}/{len(texts):,} articles", end="\r")
-
-    print()
+        if batch_number % 10 == 0 or completed == len(texts):
+            print(
+                f"MC Dropout: {completed:,}/{len(texts):,} articles", flush=True
+            )
     return np.concatenate(predicted_labels), np.concatenate(confidences)
 
 
