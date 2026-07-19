@@ -13,6 +13,15 @@ MAX_LENGTH = 256
 ID_TO_LABEL = {0: "real", 1: "fake"}
 
 
+def enable_mc_dropout(model: Any) -> None:
+    """Enable only dropout layers while the rest of the model remains in eval mode."""
+    import torch
+
+    for module in model.modules():
+        if isinstance(module, torch.nn.Dropout):
+            module.train()
+
+
 def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
     """Load the tokenizer, base model, and saved PEFT adapter."""
     if not checkpoint_dir.is_dir():

@@ -142,6 +142,16 @@ python3 explain.py
 code, import `explain_decision(...)` and provide the seven structured values listed above. The
 current CLI intentionally runs one hardcoded example; it does not accept article text.
 
+### Run the end-to-end command
+
+```bash
+python3 pipeline.py "Federal Reserve holds interest rates steady amid mixed economic data"
+```
+
+This runs classification, 30-pass MC Dropout, DDG + NLI verification, and the numbers-only
+explanation. The classifier label remains final; NLI is explanation context only. Without an
+Anthropic key, the command still prints every non-explanation result and a clear setup note.
+
 ## Run the evaluation notebooks
 
 Use a Colab GPU runtime, then choose **Runtime → Run all**.
@@ -170,6 +180,7 @@ python3 evaluation/eval_escalation.py
 predict.py                                  RoBERTa-LoRA command-line inference
 verify.py                                   DDG retrieval and DeBERTa NLI verification
 explain.py                                  numbers-only Anthropic explanation
+pipeline.py                                 end-to-end command with fixed classifier label
 scaffold_FakeNews_finn's_training.ipynb     WELFake training notebook
 eval_FakeNews.ipynb                         held-out classifier and baseline evaluation
 eval_MCFakeNews.ipynb                       MC Dropout/calibration evaluation

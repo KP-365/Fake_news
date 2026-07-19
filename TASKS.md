@@ -45,7 +45,7 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [x] Add baseline model comparison and evaluation chart - W
 - [x] Implement numbers-only Anthropic explanations in `explain.py` - W
 - [x] Prevent the explanation prompt from reclassifying or second-guessing the fixed label - W
-- [ ] Connect `explain.py` to a single end-to-end classifier → verifier → explainer command
+- [x] Connect `explain.py` to a single end-to-end classifier → verifier → explainer command
 - [ ] Build a Gradio interface
 - [ ] Deploy publicly on Hugging Face Spaces
 - [ ] Produce presentation slides

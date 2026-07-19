@@ -18,7 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from predict import ID_TO_LABEL, MAX_LENGTH, load_model
+from predict import ID_TO_LABEL, MAX_LENGTH, enable_mc_dropout, load_model
 from verify import verify_claim
 
 DATASET_NAME = "saurabhshahane/fake-news-classification"
@@ -70,13 +70,6 @@ def load_test_split() -> pd.DataFrame:
         random_state=42,
     )
     return test_df.reset_index(drop=True)
-
-
-def enable_mc_dropout(model: torch.nn.Module) -> None:
-    """Enable only dropout layers while the rest of the model remains in eval mode."""
-    for module in model.modules():
-        if isinstance(module, torch.nn.Dropout):
-            module.train()
 
 
 def mc_dropout_predictions(
