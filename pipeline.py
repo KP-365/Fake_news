@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+import spaces
 import torch
 from dotenv import load_dotenv
 
@@ -22,6 +23,7 @@ MC_PASSES = 30
 FAKE_LABEL_ID = next(label_id for label_id, label in ID_TO_LABEL.items() if label == "fake")
 
 
+@spaces.GPU
 def classify_with_uncertainty(
     article_text: str,
     *,

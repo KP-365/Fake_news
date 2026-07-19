@@ -10,6 +10,8 @@ import multiprocessing
 from functools import lru_cache
 from multiprocessing.connection import Connection
 
+import spaces
+
 # FEVER-trained NLI model (good for claim verification). Zero-shot.
 NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 DEFAULT_TOP_K = 5
@@ -32,6 +34,7 @@ def _load_nli(model_name: str = NLI_MODEL_NAME):
     return model, tokenizer, device, id2label
 
 
+@spaces.GPU
 def nli_scores(premise: str, hypothesis: str, model_name: str = NLI_MODEL_NAME) -> dict:
     """P(entailment / neutral / contradiction) that `premise` supports `hypothesis`."""
     import torch
