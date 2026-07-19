@@ -1,52 +1,65 @@
 # Task Tracker
 
-Live status lives in [GitHub Issues](../../issues) and the
-[Project board](../../projects) — this file is the static map from the proposal's
-Contributions section to concrete, checkable tasks. Tick items off as issues close.
-
-**Deadline: 21 July 2026** (tentative — confirm against QMplus/module page).
+This checklist reflects evidence currently committed in the repository. Checked items are
+implemented; unchecked items remain incomplete. Proposal targets that were replaced by a
+different implementation are labelled as deviations rather than silently treated as complete.
 
 Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 
-## Milestone 0 — Setup (due 10 Jul)
+## Milestone 0 — Repository and data
 
-- [ ] Repo scaffold, `requirements.txt`, environment (Colab T4) — K
-- [ ] Acquire & load datasets: LIAR (primary), WELFake (backup) — E
+- [x] Repository scaffold, dependency environment, and Colab setup — K
+- [x] Download and inspect LIAR and WELFake — E
+- [x] Commit the deployable RoBERTa adapter, classifier head, and tokenizer — K
 
-## Milestone 1 — Layer 1: Classification (owner: K, due 15 Jul)
+## Milestone 1 — Classification and uncertainty
 
-- [ ] BERT-base-uncased + LoRA fine-tuning (Hugging Face PEFT)
-- [ ] Monte Carlo Dropout for uncertainty estimation
-- [ ] Per-class precision/recall, macro-F1, confusion matrix on LIAR test set
-- [ ] Reliability diagram + Expected Calibration Error (ECE) vs. uncalibrated softmax baseline
-- [ ] Selective prediction: accuracy-on-retained as least-confident cases are deferred
-- [ ] Writing: Methodology, Implementation, classifier results figures
+- [x] Fine-tune `roberta-base` with LoRA on WELFake — K
+  - *Proposal deviation: the proposal specified BERT on LIAR.*
+- [x] Recreate a deterministic stratified 70/15/15 WELFake split — K
+- [x] Add validation-loss early stopping and best-adapter restoration — K
+- [x] Provide standalone classifier inference in `predict.py` — K
+- [x] Report accuracy, per-class precision/recall, macro-F1, and confusion matrix on WELFake — K
+- [x] Compare against TF-IDF logistic regression and a majority-class baseline — W
+- [x] Implement 30-pass MC Dropout uncertainty estimation — K
+- [x] Produce reliability/ECE and accuracy-versus-coverage diagnostics — K
+- [ ] Train and evaluate the proposed LIAR classifier
+- [ ] Complete classifier Methodology, Implementation, and Results report sections
 
-## Milestone 2 — Layer 2: Verification (owner: E, due 15 Jul)
+## Milestone 2 — Evidence verification and escalation
 
-- [ ] Data preprocessing & tokenisation pipeline (LIAR/WELFake)
-- [ ] Google Fact Check Tools API integration (PolitiFact, Snopes)
-- [ ] Conflict detection: classifier vs. retrieved fact-check disagreement
-- [ ] Analysis of conflict cases as hardest examples; verification layer coverage metric
-- [ ] Writing: Related Work, Results and Discussion, Conclusions
+- [x] Implement WELFake cleaning, deduplication, and RoBERTa tokenisation — E
+- [ ] Build one shared LIAR/WELFake preprocessing pipeline
+- [x] Implement DDG evidence retrieval with bounded timeouts in `verify.py` — E
+  - *Proposal deviation: this replaces the proposed Google Fact Check Tools API.*
+- [x] Implement zero-shot DeBERTa NLI verdicts: supported/refuted/insufficient — E
+- [x] Gate the 100 lowest-confidence MC Dropout cases into verification — E
+- [x] Map NLI verdicts to a final label and write per-article escalation CSV rows — E
+- [ ] Complete and preserve a full 100-article escalation run
+- [ ] Analyse verification coverage, verdict distribution, and classifier/NLI disagreements
+- [ ] Complete verification Related Work, Results, Discussion, and Conclusions sections
 
-## Milestone 3 — Layer 3: Explanation, Baselines & UI (owner: W, due 18 Jul)
+## Milestone 3 — Explanation, baselines, and interface
 
-- [ ] Baseline models + evaluation plots (comparison to BERT-LoRA)
-- [ ] Explanation agent (combines linguistic + verification + uncertainty signals)
-- [ ] Gradio UI + Hugging Face Spaces deployment (public URL)
-- [ ] Presentation slides
-- [ ] Writing: Introduction, Abstract, Evaluation, Contributions, formatting
+- [x] Add baseline model comparison and evaluation chart — W
+- [x] Implement numbers-only Anthropic explanations in `explain.py` — W
+- [x] Prevent the explanation prompt from reclassifying or second-guessing the fixed label — W
+- [ ] Connect `explain.py` to a single end-to-end classifier → verifier → explainer command
+- [ ] Build a Gradio interface
+- [ ] Deploy publicly on Hugging Face Spaces
+- [ ] Produce presentation slides
+- [ ] Complete Introduction, Abstract, Evaluation, Contributions, and formatting
 
-## Milestone 4 — Integration & Evaluation (team, due 21 Jul — submission)
+## Milestone 4 — Integration and submission
 
-- [ ] Faithfulness check: sample explanations reviewed against underlying signals
-- [ ] End-to-end demo test (classify → confidence → conflicts → explanation)
-- [ ] Final report assembly and submission checklist
+- [ ] Review a sample of generated explanations for faithfulness to the structured signals
+- [ ] Run and document an end-to-end demo test
+- [ ] Evaluate cross-dataset generalisation or clearly scope conclusions to WELFake
+- [ ] Assemble the final report and submission checklist
 
-## Success criteria (from proposal)
+## Current scope
 
-The project succeeds when the deployed Gradio demo classifies a claim, reports a
-calibrated confidence, surfaces any conflicting fact-checks, and returns a readable
-explanation — with each layer meeting its explicit target on the LIAR test set (WELFake
-as second source).
+The validated implementation is a **RoBERTa-LoRA classifier trained and tested on WELFake**,
+with MC Dropout evaluation, DDG + DeBERTa escalation code, and a standalone numbers-only
+Anthropic explanation function. It is not the proposed BERT-on-LIAR system, and no Gradio or
+Hugging Face Spaces deployment is currently present.

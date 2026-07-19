@@ -1,81 +1,182 @@
-# A Three-Layer Framework for Fake News Detection, Verification, and Explanation
+# Fake-News Classification, Verification, and Explanation
 
-ECS7036P Group 10 project. Combines machine learning, external fact verification, and
-explainable AI into a single pipeline that classifies a claim, reports a calibrated
-confidence, surfaces conflicting fact-checks, and returns a human-readable explanation.
+This repository implements a three-stage research pipeline:
 
-**Deadline: 21 July 2026** (tentative — confirm against QMplus/module page).
+1. classify a news article as **real** or **fake** with a fine-tuned RoBERTa model;
+2. route uncertain predictions to web-evidence retrieval and natural-language inference (NLI);
+3. explain the resulting decision from structured model signals only.
 
-## Team
+The trained checkpoint and runnable scripts are committed to the repository. There is no
+Gradio application or public Hugging Face Space in the current implementation.
 
-| Name | Email | Focus |
-|---|---|---|
-| Kayleb Elorm Aston Parkes | ec251170@qmul.ac.uk | Layer 1 — Classification |
-| Eric Kamalendran | ec251192@qmul.ac.uk | Layer 2 — Verification |
-| William Finlay McKie | ec251168@qmul.ac.uk | Layer 3 — Explanation & UI |
+## Implemented pipeline
 
-See [TASKS.md](TASKS.md) for the full task tracker and [GitHub Issues](../../issues) /
-[Project board](../../projects) for live status.
+### 1. RoBERTa-LoRA classifier
 
-## Architecture
+`scaffold_FakeNews_finn's_training.ipynb` fine-tunes `roberta-base` with LoRA adapters on
+WELFake. It cleans and combines each article's title and body, then creates a deterministic,
+stratified 70/15/15 train/validation/test split with seed 42. The class mapping is
+`0 = real` and `1 = fake`.
 
-1. **Layer 1 — Classification** (`src/classifier/`): BERT-base-uncased fine-tuned with
-   LoRA (Hugging Face PEFT) classifies a claim as real or fake. Monte Carlo Dropout
-   estimates prediction uncertainty so the model can flag low-confidence claims instead
-   of forcing a binary decision.
-2. **Layer 2 — Verification** (`src/verification/`): Queries the Google Fact Check
-   Tools API (PolitiFact, Snopes, etc.) for existing fact-checks and flags disagreements
-   between the classifier and retrieved evidence.
-3. **Layer 3 — Explanation** (`src/explanation/`): Generates a natural-language
-   explanation combining the linguistic signal, verification evidence, and uncertainty
-   estimate, surfaced through a Gradio UI (`src/app/`) deployed on Hugging Face Spaces.
+Training uses a maximum sequence length of 256, batch size 32, validation-loss early stopping,
+and at most three epochs. The best adapter is restored before final evaluation and saved with
+the separately trained classifier head under `models/roberta-trained-welfake/`.
 
-## Resources
+`predict.py` loads that local checkpoint and returns one label plus its softmax confidence.
 
-- **Dataset (primary):** [LIAR](https://www.kaggle.com/datasets/doanquanvietnamca/liar-dataset/data) — 12,836 labelled political statements from PolitiFact
-- **Dataset (backup):** [WELFake](https://www.kaggle.com/datasets/saurabhshahane/fake-news-classification) — 72,134 labelled news articles
-- **Pretrained model:** BERT-base-uncased via Hugging Face Transformers
-- **Fine-tuning:** LoRA via Hugging Face PEFT
-- **Fact checking:** Google Fact Check Tools API
-- **Compute:** Google Colab (T4 GPU, free tier)
-- **UI/hosting:** Gradio + Hugging Face Spaces
-- **Language:** Python 3.10+
+### 2. MC Dropout uncertainty and escalation
 
-## Evaluation
+`eval_MCFakeNews.ipynb` performs 30 stochastic forward passes with dropout active. It uses the
+maximum class probability from the mean prediction as confidence and also calculates entropy,
+mutual information, calibration, and accuracy-versus-coverage diagnostics.
 
-- **Layer 1:** per-class precision/recall, macro-F1, confusion matrix on LIAR test set
-  (WELFake as second source); reliability diagram and Expected Calibration Error (ECE)
-  vs. an uncalibrated softmax baseline; accuracy-on-retained under selective deferral.
-- **Layer 2:** coverage of test claims and rate of classifier/fact-check disagreement.
-- **Layer 3:** sample-based faithfulness of explanations to the underlying signals.
-- **Overall:** success = the deployed Gradio demo classifies a claim, reports calibrated
-  confidence, surfaces conflicting fact-checks, and returns a readable explanation.
+`evaluation/eval_escalation.py` applies the same MC Dropout procedure to the 9,398-article
+WELFake test split and selects the 100 lowest-confidence articles. This is the implemented
+confidence gate; there is not yet a fixed production threshold.
+
+Each selected article's title is passed to `verify.py`. If the title is empty, the first 300
+characters of the combined content are used instead.
+
+### 3. DDG retrieval and DeBERTa NLI
+
+`verify.py` searches the web through `ddgs`, using a 10-second DDG timeout inside a 15-second
+hard-capped worker process. Retrieved snippets are compared with the claim by
+`MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli`.
+
+The escalation mapping is:
+
+- `refuted` → **fake**;
+- `supported` → **real**;
+- `insufficient` → keep the RoBERTa classifier label.
+
+The escalation evaluator writes article-level outputs to
+`evaluation/escalation_results.csv` and prints classifier-only accuracy, escalated accuracy,
+and the NLI verdict distribution for the low-confidence bucket. The CSV is generated by a run;
+it is not a precomputed result committed here.
+
+### 4. Numbers-only Anthropic explanation
+
+`explain.py` sends only these structured values to Anthropic:
+
+- classifier label and confidence;
+- MC Dropout uncertainty;
+- NLI verdict;
+- maximum entailment and contradiction scores;
+- evidence count.
+
+It does **not** send the article, claim, evidence text, or URLs. Its prompt treats the supplied
+label as final and explicitly tells the model to explain it in plain English without
+reclassifying or second-guessing it. `ANTHROPIC_API_KEY` must be set in the environment.
+
+## Proposal deviations
+
+The original proposal and the repository's proposal-gap analysis describe a different target.
+The material deviations are explicit:
+
+| Proposal | Implemented repository |
+|---|---|
+| LIAR as the primary training/evaluation dataset | WELFake is the sole training and reported test dataset |
+| `bert-base-uncased` classifier | `roberta-base` with LoRA |
+| Google Fact Check Tools API and named fact-check sites | General DDG web retrieval followed by DeBERTa NLI |
+| Claude Sonnet explanation layer | Anthropic `claude-3-5-haiku-latest`, using numbers only |
+| Gradio UI and Hugging Face Spaces deployment | Not implemented |
+
+Results in this repository therefore measure in-dataset WELFake performance. They should not be
+presented as LIAR results or as evidence of cross-dataset generalisation.
+
+## Validated classifier result
+
+`eval_FakeNews.ipynb` recreates the unseen WELFake split and reports:
+
+- RoBERTa-LoRA accuracy: **0.9957**;
+- RoBERTa-LoRA macro-F1: **0.9957**;
+- TF-IDF + logistic-regression macro-F1: **0.9520**;
+- majority-class baseline macro-F1: **0.3559**;
+- confusion matrix: `[[5178, 15], [25, 4180]]`.
+
+These numbers cover the classifier evaluation only. No completed escalation CSV or explanation
+faithfulness study is committed.
 
 ## Setup
 
+Python 3.10 or newer is required.
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+The first classifier or verifier run downloads its Hugging Face base model. The LoRA adapter,
+classifier head, and tokenizer are already stored under `models/`.
+
+## Run the scripts
+
+### Classify one article or headline
+
+```bash
+python3 predict.py "Federal Reserve holds interest rates steady amid mixed economic data"
+```
+
+Output is the fixed label and confidence, for example `real (confidence: 99.57%)`.
+
+### Retrieve evidence and run NLI
+
+```bash
+python3 verify.py "Federal Reserve holds interest rates steady amid mixed economic data"
+```
+
+This requires internet access and prints JSON containing the verdict, NLI scores, and retrieved
+evidence. Retrieval status is flushed immediately so a slow search remains visible.
+
+### Run the hardcoded explanation example
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key"
+python3 explain.py
+```
+
+For application code, import `explain_decision(...)` and provide the seven structured values
+listed above. The current CLI intentionally runs one hardcoded example; it does not accept
+article text.
+
+## Run the evaluation notebooks
+
+Use a Colab GPU runtime, then choose **Runtime → Run all**.
+
+- **`eval_FakeNews.ipynb`** — deterministic held-out classifier evaluation, per-class metrics,
+  confusion matrix, ten sample predictions, and TF-IDF/majority-class baselines. Use its
+  **Open in Colab** badge.
+- **`eval_MCFakeNews.ipynb`** — full MC Dropout uncertainty, calibration, and selective-retention
+  diagnostics. Open the notebook from the `main` branch through Colab's GitHub notebook picker,
+  then run all cells.
+- **`eval_escalation.ipynb`** — idempotently clones or updates this repository, installs the
+  Colab dependencies, prints the exact Git commit and CUDA status, and runs
+  `evaluation/eval_escalation.py`. Use its **Open in Colab** badge. This run is intentionally
+  long because it performs 30 passes over the full test split and 100 rate-limited web/NLI
+  checks.
+
+For a local escalation run after setup:
+
+```bash
+python3 evaluation/eval_escalation.py
 ```
 
 ## Repository layout
 
-```
-src/
-  classifier/    Layer 1 — BERT-LoRA classifier + Monte Carlo Dropout
-  verification/  Layer 2 — Google Fact Check API + conflict detection
-  explanation/   Layer 3 — explanation agent
-  baseline/      Baseline models for comparison
-  app/           Gradio UI + Hugging Face Spaces deployment
-evaluation/      Metrics: F1, confusion matrix, reliability diagram, ECE
-data/            raw/ and processed/ datasets (gitignored, not committed)
-notebooks/       Exploratory / Colab training notebooks
-docs/            Proposal, report drafts, slides
+```text
+predict.py                                  RoBERTa-LoRA command-line inference
+verify.py                                   DDG retrieval and DeBERTa NLI verification
+explain.py                                  numbers-only Anthropic explanation
+scaffold_FakeNews_finn's_training.ipynb     WELFake training notebook
+eval_FakeNews.ipynb                         held-out classifier and baseline evaluation
+eval_MCFakeNews.ipynb                       MC Dropout/calibration evaluation
+eval_escalation.ipynb                       Colab runner for escalation evaluation
+evaluation/eval_escalation.py               low-confidence bucket and NLI escalation
+models/roberta-trained-welfake/              tracked adapter, classifier head, tokenizer
+docs/project_proposal.docx                  original project proposal
+requirements.txt                            Python dependencies
+TASKS.md                                    implementation-status checklist
 ```
 
-## References
-
-See the [project proposal](docs/) for the full related-work and reference list
-(Devlin et al. 2019 — BERT; Hu et al. — LoRA; Wang 2017 — LIAR; Thorne et al. 2018 —
-FEVER; Gunning & Aha 2019 — XAI; Gal & Ghahramani 2016 — MC Dropout; Guo et al. 2017 —
-calibration; Geifman & El-Yaniv 2017 — selective classification).
+See `TASKS.md` for completed work and remaining gaps.
