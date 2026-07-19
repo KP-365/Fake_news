@@ -6,15 +6,15 @@ This review compares the commitments in `proposal-group10-preview.pdf` with the 
 
 Status meanings:
 
-- **Done** — implemented and evidenced in the reviewed files.
-- **Partial** — some implementation exists, but the stated commitment is incomplete.
-- **Missing** — no implementation evidence exists in the reviewed files.
-- **Deviated** — implementation materially differs from the proposal.
+- **Done**: implemented and evidenced in the reviewed files.
+- **Partial**: some implementation exists, but the stated commitment is incomplete.
+- **Missing**: no implementation evidence exists in the reviewed files.
+- **Deviated**: implementation materially differs from the proposal.
 
 ## Material deviations
 
-1. **Dataset deviation — LIAR to WELFake:** the proposal makes LIAR the primary dataset and requires explicit targets on the held-out LIAR test set, with WELFake only as a second/backup source. The training and validation paths instead preprocess, split, train, and evaluate on WELFake. LIAR is downloaded and displayed but is not used for model training or reported evaluation.
-2. **Model deviation — BERT to RoBERTa:** the proposal specifies `bert-base-uncased`. The implemented classifier and inference loader use `roberta-base`.
+1. **Dataset deviation: LIAR to WELFake:** the proposal makes LIAR the primary dataset and requires explicit targets on the held-out LIAR test set, with WELFake only as a second/backup source. The training and validation paths instead preprocess, split, train, and evaluate on WELFake. LIAR is downloaded and displayed but is not used for model training or reported evaluation.
+2. **Model deviation: BERT to RoBERTa:** the proposal specifies `bert-base-uncased`. The implemented classifier and inference loader use `roberta-base`.
 
 ## Commitment-by-commitment review
 

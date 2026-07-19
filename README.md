@@ -144,13 +144,13 @@ article text.
 
 Use a Colab GPU runtime, then choose **Runtime → Run all**.
 
-- **`eval_FakeNews.ipynb`** — deterministic held-out classifier evaluation, per-class metrics,
+- **`eval_FakeNews.ipynb`** - deterministic held-out classifier evaluation, per-class metrics,
   confusion matrix, ten sample predictions, and TF-IDF/majority-class baselines. Use its
   **Open in Colab** badge.
-- **`eval_MCFakeNews.ipynb`** — full MC Dropout uncertainty, calibration, and selective-retention
+- **`eval_MCFakeNews.ipynb`** - full MC Dropout uncertainty, calibration, and selective-retention
   diagnostics. Open the notebook from the `main` branch through Colab's GitHub notebook picker,
   then run all cells.
-- **`eval_escalation.ipynb`** — idempotently clones or updates this repository, installs the
+- **`eval_escalation.ipynb`** - idempotently clones or updates this repository, installs the
   Colab dependencies, prints the exact Git commit and CUDA status, and runs
   `evaluation/eval_escalation.py`. Use its **Open in Colab** badge. This run is intentionally
   long because it performs 30 passes over the full test split and 100 rate-limited web/NLI
