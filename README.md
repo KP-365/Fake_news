@@ -1,14 +1,3 @@
----
-title: News Signal Review
-emoji: 📰
-colorFrom: blue
-colorTo: yellow
-sdk: gradio
-sdk_version: 6.20.0
-python_version: 3.12.12
-app_file: app.py
----
-
 # Fake-News Classification, Verification, and Explanation
 
 [![Open in Hugging Face Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm.svg)](https://wf1212-fake-news-detector.hf.space)
