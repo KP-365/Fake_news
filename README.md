@@ -78,7 +78,7 @@ The material deviations are explicit:
 | LIAR as the primary training/evaluation dataset | WELFake is the sole training and reported test dataset |
 | `bert-base-uncased` classifier | `roberta-base` with LoRA |
 | Google Fact Check Tools API and named fact-check sites | General DDG web retrieval followed by DeBERTa NLI |
-| Claude Sonnet explanation layer | Anthropic `claude-3-5-haiku-latest`, using numbers only |
+| Claude Sonnet explanation layer | Anthropic `claude-haiku-4-5`, using numbers only |
 | Gradio UI and Hugging Face Spaces deployment | Not implemented |
 
 Results in this repository therefore measure in-dataset WELFake performance. They should not be

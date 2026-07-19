@@ -8,7 +8,7 @@ import sys
 
 from dotenv import load_dotenv
 
-MODEL_NAME = "claude-3-5-haiku-latest"
+MODEL_NAME = "claude-haiku-4-5"
 MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
 The supplied classifier label is final. Do not reclassify it, question it, second-guess it,
