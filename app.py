@@ -822,7 +822,7 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         show_error=True,
-        footer_links=[],
+        footer_links=["api"],
         theme="default",
         css=APP_CSS,
         head=APP_HEAD,

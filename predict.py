@@ -38,6 +38,20 @@ def enable_mc_dropout(model: Any) -> None:
             module.train()
 
 
+def _select_startup_device(torch_module: Any) -> Any:
+    """Keep ZeroGPU startup on CPU; otherwise select ordinary CUDA/CPU."""
+    is_zero_gpu = os.getenv("SPACES_ZERO_GPU", "").strip().lower() in {
+        "1",
+        "t",
+        "true",
+    }
+    if is_zero_gpu:
+        return torch_module.device("cpu")
+    return torch_module.device(
+        "cuda" if torch_module.cuda.is_available() else "cpu"
+    )
+
+
 def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
     """Load the tokenizer, base model, and saved PEFT adapter."""
     if not checkpoint_dir.is_dir():
@@ -57,14 +71,7 @@ def load_model(checkpoint_dir: Path = CHECKPOINT_DIR) -> tuple[Any, Any, Any]:
     from peft import PeftModel
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    is_zero_gpu = os.getenv("SPACES_ZERO_GPU", "").strip().lower() in {
-        "1",
-        "t",
-        "true",
-    }
-    device = torch.device(
-        "cpu" if is_zero_gpu else ("cuda" if torch.cuda.is_available() else "cpu")
-    )
+    device = _select_startup_device(torch)
     tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
     base_model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL_NAME,

@@ -25,6 +25,16 @@ class AppHardeningTests(unittest.TestCase):
             "max_contradiction": 0.1,
         }
 
+    def test_analyze_event_is_a_visible_named_api_endpoint(self) -> None:
+        analyze_dependency = next(
+            dependency
+            for dependency in app.demo.config["dependencies"]
+            if dependency.get("api_name") == "analyze"
+        )
+
+        self.assertEqual(analyze_dependency["api_visibility"], "public")
+        self.assertIsNot(analyze_dependency.get("show_api"), False)
+
     def test_truncates_article_and_redacts_key_from_all_outputs(self) -> None:
         captured_texts: list[str] = []
 
