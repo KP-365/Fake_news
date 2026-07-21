@@ -8,7 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-CHECKPOINT_DIR = Path(__file__).resolve().parent / "models" / "roberta-trained-welfake"
+# Reuse the parent repository's committed checkpoint instead of duplicating the binaries.
+CHECKPOINT_DIR = (
+    Path(__file__).resolve().parent.parent / "models" / "roberta-trained-welfake"
+)
 BASE_MODEL_NAME = "roberta-base"
 MAX_LENGTH = 256
 ID_TO_LABEL = {0: "real", 1: "fake"}

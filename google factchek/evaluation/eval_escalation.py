@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -22,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from predict import ID_TO_LABEL, MAX_LENGTH, enable_mc_dropout, load_model
 from verify import verify_claim
 
+GOOGLE_API_KEY_ENV = "GOOGLE_FACTCHECK_API_KEY"
 DATASET_NAME = "saurabhshahane/fake-news-classification"
 MC_PASSES = 30
 BATCH_SIZE = 32
@@ -116,6 +118,7 @@ def mc_dropout_predictions(
 def _google_fields(result: dict) -> dict:
     match = result.get("google_match") or {}
     return {
+        "google_candidate_count": len(result.get("google_candidates") or []),
         "google_match_score": match.get("match_score"),
         "google_matched_claim": match.get("matched_claim", ""),
         "google_rating": match.get("textual_rating", ""),
@@ -201,6 +204,14 @@ def verify_low_confidence_bucket(
 
 
 def main() -> None:
+    if not os.getenv(GOOGLE_API_KEY_ENV, "").strip():
+        raise RuntimeError(
+            f"{GOOGLE_API_KEY_ENV} is not set. Export the key (or store it in "
+            "Colab Secrets and copy it into the environment) before running this "
+            "evaluation; without it the Google tier silently returns zero "
+            "candidates and the results are not interpretable."
+        )
+
     test_df = load_test_split()
     print(f"Loaded {len(test_df):,} held-out WELFake test articles")
 
@@ -234,11 +245,39 @@ def main() -> None:
     verdict_distribution = Counter(results["verdict"])
     source_distribution = Counter(results["verification_source"])
 
+    google_covered = results["google_candidate_count"] > 0
+    google_usable = results["verification_source"] == "google_fact_check"
+    google_verdicts = results.loc[google_usable]
+    google_agreement = (
+        (google_verdicts["verdict"].map(VERDICT_TO_LABEL) == google_verdicts["true_label"]).mean()
+        if len(google_verdicts)
+        else float("nan")
+    )
+
     print(f"\nSaved {len(results)} rows to {RESULTS_PATH}")
     print(f"Classifier-only accuracy: {classifier_accuracy:.4f}")
     print(f"Google + DDG/DeBERTa escalated accuracy: {escalated_accuracy:.4f}")
     print(f"Accuracy change: {escalated_accuracy - classifier_accuracy:+.4f}")
     print(f"Labels changed: {int(results['label_changed'].sum())}/{len(results)}")
+
+    print("Google coverage:")
+    print(
+        f"  Coverage rate (>=1 candidate): {google_covered.mean():.4f} "
+        f"({int(google_covered.sum())}/{len(results)})"
+    )
+    print(
+        f"  Usable-verdict rate: {google_usable.mean():.4f} "
+        f"({int(google_usable.sum())}/{len(results)})"
+    )
+    if len(google_verdicts):
+        print(
+            "  Google-verdict agreement with true labels: "
+            f"{google_agreement:.4f} "
+            f"({int((google_verdicts['verdict'].map(VERDICT_TO_LABEL) == google_verdicts['true_label']).sum())}"
+            f"/{len(google_verdicts)})"
+        )
+    else:
+        print("  Google-verdict agreement with true labels: n/a (no usable Google verdicts)")
 
     print("Verification source distribution:")
     for source in ("google_fact_check", "ddg_deberta", "none"):

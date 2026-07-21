@@ -20,7 +20,16 @@ from multiprocessing.connection import Connection
 from typing import Any
 
 import requests
-import spaces
+
+try:
+    import spaces
+except ImportError:  # Local runs without the ZeroGPU package installed.
+    class _SpacesFallback:
+        @staticmethod
+        def GPU(func):
+            return func
+
+    spaces = _SpacesFallback()
 
 NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 DEFAULT_TOP_K = 5
