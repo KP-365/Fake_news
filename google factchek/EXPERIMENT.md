@@ -56,8 +56,8 @@ python "google factchek/evaluation/eval_google_bucket.py" --check-key-only
 
 The fixed-bucket runner writes:
 
-- `evaluation/google_escalation_results.csv` in this folder, with row ID, claim, true label, classifier label, committed DDG-only label, `google_candidate_count`, verification `source`, `verdict`, and hybrid `final_label`;
-- `evaluation/google_escalation_summary.txt` in this folder, containing the summary metrics below.
+- `evaluation/google_escalation_results.csv` in this folder, with row ID, claim, true label, classifier label, committed DDG-only label, `google_candidate_count`, verification `source`, `verdict`, fallback `reason`, Google-specific `google_reason`, sanitized `google_error`, and hybrid `final_label`;
+- `evaluation/google_escalation_summary.txt` in this folder, containing request/key-error and clean-no-match counts plus the summary metrics below.
 
 The CSV is checkpointed after every row so an interrupted run preserves completed requests. The existing two-second inter-request delay is retained.
 

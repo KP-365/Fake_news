@@ -1,0 +1,12 @@
+Google fixed-bucket summary
+===========================
+Rows: 100
+Google request/key errors: 0/100
+Clean zero-candidate no-match responses: 100/100
+Google coverage rate: 0.0% (0/100)
+Usable-verdict rate: 0.0% (0/100)
+Google agreement with true labels: n/a (0/0)
+Accuracy comparison:
+  Classifier-only: 76.0% (76/100)
+  Committed DDG-only final: 64.0% (64/100)
+  Google-first hybrid final: 64.0% (64/100)

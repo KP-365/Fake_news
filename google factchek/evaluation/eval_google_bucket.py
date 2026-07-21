@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import quote, quote_plus
 
 import pandas as pd
 
@@ -106,9 +107,40 @@ def _hybrid_final_label(verdict: str, classifier_label: str) -> str:
     return VERDICT_TO_LABEL.get(verdict, classifier_label)
 
 
+def _sanitize_google_error(value: Any) -> str:
+    """Remove either configured API key from a captured request error."""
+    error = str(value or "").strip()
+    for environment_name in GOOGLE_KEY_ENV_NAMES:
+        api_key = os.getenv(environment_name, "").strip()
+        if not api_key:
+            continue
+        for representation in {api_key, quote(api_key, safe=""), quote_plus(api_key)}:
+            error = error.replace(representation, "[REDACTED]")
+    return error
+
+
+def _google_audit_fields(verification: dict[str, Any]) -> tuple[str, str, str]:
+    """Classify Google request outcome separately from DDG/NLI fallback."""
+    reason = str(verification.get("reason") or "")
+    google_error = _sanitize_google_error(verification.get("google_error"))
+    google_candidates = verification.get("google_candidates") or []
+    source = str(verification.get("source") or "none")
+    if google_error:
+        google_reason = "Google request failed or errored"
+    elif not google_candidates:
+        google_reason = "no Google fact-check match"
+    elif source == "google_fact_check":
+        google_reason = "usable Google fact-check verdict"
+    else:
+        google_reason = "Google candidates found but no usable verdict"
+    return reason, google_reason, google_error
+
+
 def _build_summary(results: pd.DataFrame) -> str:
     total = len(results)
     google_covered = results["google_candidate_count"] > 0
+    google_errors = results["google_error"].fillna("").str.strip().ne("")
+    clean_no_match = (results["google_candidate_count"] == 0) & ~google_errors
     google_usable = (
         (results["source"] == "google_fact_check")
         & results["verdict"].isin(VERDICT_TO_LABEL)
@@ -134,6 +166,14 @@ def _build_summary(results: pd.DataFrame) -> str:
         "Google fixed-bucket summary",
         "===========================",
         f"Rows: {total}",
+        (
+            "Google request/key errors: "
+            f"{int(google_errors.sum())}/{total}"
+        ),
+        (
+            "Clean zero-candidate no-match responses: "
+            f"{int(clean_no_match.sum())}/{total}"
+        ),
         (
             "Google coverage rate: "
             f"{google_covered.mean():.1%} "
@@ -188,7 +228,9 @@ def run_bucket() -> pd.DataFrame:
         verdict = str(verification.get("verdict") or "insufficient")
         source = str(verification.get("source") or "none")
         google_candidates = verification.get("google_candidates") or []
+        reason, google_reason, google_error = _google_audit_fields(verification)
         classifier_label = str(row["classifier_label"])
+        final_label = _hybrid_final_label(verdict, classifier_label)
 
         records.append(
             {
@@ -200,9 +242,10 @@ def run_bucket() -> pd.DataFrame:
                 "google_candidate_count": len(google_candidates),
                 "source": source,
                 "verdict": verdict,
-                "final_label": _hybrid_final_label(
-                    verdict, classifier_label
-                ),
+                "reason": reason,
+                "google_reason": google_reason,
+                "google_error": google_error,
+                "final_label": final_label,
             }
         )
 
@@ -211,7 +254,7 @@ def run_bucket() -> pd.DataFrame:
         print(
             f"[{position:03d}/{len(bucket)}] row={row_id} "
             f"google_candidates={len(google_candidates)} "
-            f"source={source} verdict={verdict}",
+            f"source={source} verdict={verdict} final_label={final_label}",
             flush=True,
         )
         if position < len(bucket):
