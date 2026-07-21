@@ -7,6 +7,7 @@ This sheet consolidates only values and behaviors backed by committed repository
 | Area | Primary committed evidence |
 |---|---|
 | Baseline and classifier comparison | `docs/results-summary.md`; preserved outputs in `eval_FakeNews.ipynb` |
+| MC Dropout calibration and uncertainty | Executed outputs and embedded figures in `eval_MCFakeNews.ipynb`, merged in commit `799f359` |
 | Escalation behavior and counts | `evaluation/escalation_results.csv`; `docs/results-summary.md` |
 | Explanation pipeline | `explain.py`, `pipeline.py`, `app.py`, `eval_faithfulness.ipynb` |
 | Deployed Space | `space/README.md`, `app.py`, `requirements.txt`, `docs/results-summary.md` |
@@ -38,6 +39,33 @@ Rows are true labels in the order real, fake. This records 40 errors: 15 real ar
 - TF-IDF uses `max_features=30000`, `ngram_range=(1, 2)`, and `min_df=2`.
 - Logistic regression uses `max_iter=1000`, `random_state=42`, and `solver="liblinear"`.
 - The majority baseline is `DummyClassifier(strategy="most_frequent")`.
+
+## 1A. MC Dropout calibration and uncertainty
+
+The executed outputs merged in commit `799f359` back the following results:
+
+| Inference mode | Accuracy | Macro F1 |
+|---|---:|---:|
+| MC Dropout, 30 passes | 0.9967 | 0.9967 |
+| Deterministic | 0.9957 | 0.9957 |
+
+The MC Dropout confusion matrix is:
+
+```text
+[[5175,   18],
+ [  13, 4192]]
+```
+
+The executed uncertainty summaries are:
+
+| Measure | Overall mean | Correct predictions | Incorrect predictions |
+|---|---:|---:|---:|
+| Predictive entropy | 0.0347 | 0.0333 | 0.4816 |
+| Mutual information | 0.0015 | 0.0013 | 0.0468 |
+
+The 15-bin expected calibration errors are **0.0055 for MC Dropout** and **0.0028 for deterministic confidence**. Since lower ECE is better, MC Dropout did not improve calibration in this run, despite its higher accuracy and macro F1.
+
+The notebook embeds three relevant visual artifacts: the MC confusion-matrix figure; a combined correct-vs-incorrect predictive-entropy boxplot and rejection curve; and the 15-bin reliability diagram comparing MC with deterministic confidence. All values and figures are preserved in executed cells of `eval_MCFakeNews.ipynb`.
 
 ## 2. Evidence-verification and escalation numbers
 
@@ -94,9 +122,9 @@ These behaviors are backed by `explain.py`, `pipeline.py`, `app.py`, and `eval_f
 
 ## 5. Claims that currently lack committed artifact backing
 
-Do not report these as completed results until an executed artifact is committed:
+The MC summary results above are now backed by executed notebook outputs. The remaining reporting boundaries are:
 
-1. **Numerical MC Dropout calibration or ECE result.** `docs/results-summary.md` explicitly states that no numerical MC Dropout ECE, deterministic ECE, entropy, or accuracy-versus-coverage result is preserved. The implemented notebook code exists, but its execution outputs are not committed.
+1. **Raw MC array checkpoints.** No `.npy` arrays were committed with merge `799f359`; only the executed `eval_MCFakeNews.ipynb` outputs and embedded figures are preserved. Report the backed summary values, but do not claim that raw MC probability, entropy, or mutual-information arrays are available as committed artifacts.
 2. **Explanation faithfulness rate or human-evaluation result.** `eval_faithfulness.ipynb` provides the workflow, but no completed `evaluation/faithfulness_review.csv` is committed. `docs/results-summary.md` explicitly states that no explanation-faithfulness or human-evaluation result has been completed.
 3. **Baseline comparison CSV.** Baseline results are preserved in `docs/results-summary.md` and the `eval_FakeNews.ipynb` output, but no dedicated baseline CSV is committed under `evaluation/`. The only committed evaluation CSV is `escalation_results.csv`.
 4. **Permanent output transcript for the deployed Space run.** The verified endpoint result is documented in `docs/results-summary.md`; no separate committed log file stores the full response payload. Report the summary values only.

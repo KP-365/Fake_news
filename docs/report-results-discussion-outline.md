@@ -33,10 +33,35 @@
 
 ### A.4 MC Dropout calibration
 
-> **TODO - pending Kayleb's notebook run.**
-> `eval_MCFakeNews.ipynb` contains the implemented 30-pass MC Dropout evaluation, predictive-entropy and mutual-information diagnostics, a rejection curve, a 15-bin reliability diagram, and ECE calculations for MC-averaged and deterministic confidence (`docs/results-summary.md` §2).
-> The committed notebook does **not** contain executed outputs for the MC inference, calibration, or ECE cells. There is no numerical MC Dropout ECE, deterministic ECE, entropy, or accuracy-versus-coverage result available to quote (`docs/results-summary.md` §2; `docs/writeup-facts-w.md` §5).
-> **Do not write any calibration number until the notebook is fully executed and its outputs are committed.** When that lands, this subsection reports: MC vs deterministic accuracy/macro-F1, mean predictive entropy, mean mutual information, reliability diagram, ECE values, and the rejection (accuracy-versus-coverage) curve.
+- Report the executed 30-pass result merged in commit `799f359`: MC Dropout accuracy **0.9967** and macro F1 **0.9967**, compared with deterministic accuracy **0.9957** and macro F1 **0.9957** (`eval_MCFakeNews.ipynb`, executed baseline-comparison cell).
+- Present the MC confusion matrix (true labels as rows, real/fake order): `[[5175, 18], [13, 4192]]` (`eval_MCFakeNews.ipynb`, executed baseline-comparison cell and embedded confusion-matrix figure).
+- Define the MC-averaged probability over **30** stochastic passes:
+
+$$
+\bar{p}_{ic} = \frac{1}{T}\sum_{t=1}^{T} p_{tic}, \qquad T=30.
+$$
+
+  Here $p_{tic}$ is the softmax probability for article $i$, class $c$, and pass $t$; $\bar{p}_{ic}$ is its MC average (`eval_MCFakeNews.ipynb`, evaluate cell).
+- Define predictive entropy and mutual information exactly as implemented:
+
+$$
+H_i = -\sum_{c \in C}\bar{p}_{ic}\log(\bar{p}_{ic}+\epsilon), \qquad
+\mathrm{MI}_i = H_i - \frac{1}{T}\sum_{t=1}^{T}\left[-\sum_{c \in C}p_{tic}\log(p_{tic}+\epsilon)\right].
+$$
+
+  Here $C$ is the two-class label set, $\epsilon>0$ is the numerical stabiliser used before taking logarithms, $H_i$ is predictive entropy, and $\mathrm{MI}_i$ is the epistemic uncertainty estimate (`eval_MCFakeNews.ipynb`, evaluate cell).
+- Report mean predictive entropy **0.0347** overall, **0.0333** for correct predictions, and **0.4816** for incorrect predictions; report mean mutual information **0.0015** overall, **0.0013** correct, and **0.0468** incorrect (`eval_MCFakeNews.ipynb`, executed evaluate and entropy-analysis cells).
+- Cite the notebook's embedded uncertainty figure: correct-vs-incorrect predictive-entropy boxplot and rejection curve (`eval_MCFakeNews.ipynb`, executed entropy-analysis cell).
+- Define the implemented 15-bin ECE:
+
+$$
+\mathrm{ECE} = \sum_{b=1}^{15}\frac{|B_b|}{N}\left|\mathrm{acc}(B_b)-\mathrm{conf}(B_b)\right|.
+$$
+
+  Here $N$ is the test-set size, $B_b$ contains examples whose maximum predicted confidence falls in equal-width bin $b$, $\mathrm{acc}(B_b)$ is mean correctness in that bin, and $\mathrm{conf}(B_b)$ is mean confidence (`eval_MCFakeNews.ipynb`, calibration cell).
+- Report ECE **0.0055** for MC Dropout versus **0.0028** deterministic. Since lower ECE is better, MC averaging did **not** improve calibration in this run, despite its higher accuracy (`eval_MCFakeNews.ipynb`, executed calibration cell).
+- Cite the embedded 15-bin reliability diagram comparing MC and deterministic confidence (`eval_MCFakeNews.ipynb`, executed calibration cell).
+- Artifact caveat: commit `799f359` preserves executed outputs and embedded figures, but no `.npy` arrays were committed (`docs/writeup-facts-w.md` §5).
 
 ### A.5 Escalation experiment
 
@@ -101,13 +126,13 @@
 - **In-dataset only:** all classifier metrics are WELFake held-out, not LIAR or cross-dataset (`docs/results-summary.md` §4).
 - **Escalation scope:** the experiment covers the 100 least-confident articles, not the full 9,398 (`docs/results-summary.md` §4).
 - **Live retrieval:** DDG results change between runs; the evidence layer is not reproducible as committed (`docs/results-summary.md` §4).
-- **Missing calibration numbers:** no numerical ECE, entropy, or coverage result is preserved (`docs/results-summary.md` §2, §4).
+- **Calibration artifact boundary:** ECE and uncertainty summaries are now preserved in executed notebook outputs, but the underlying `.npy` arrays were not committed (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §5).
 - **Missing faithfulness evaluation:** no human-explanation result completed (`docs/results-summary.md` §4).
 - **Unsafe override mapping:** the verified NLI layer cannot safely override the classifier as implemented (`docs/results-summary.md` §3).
 
 ### B.5 Future work
 
-- Complete and commit the MC Dropout calibration run (ECE, entropy, coverage) so calibration can be reported (TODO from `docs/results-summary.md` §2).
+- Preserve raw MC probability and uncertainty arrays in a future run, and investigate why MC Dropout improved accuracy while its ECE was worse than deterministic confidence (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §5).
 - Complete the 10-row explanation-faithfulness review and commit `evaluation/faithfulness_review.csv` (TODO from `docs/writeup-facts-w.md` §3, §5).
 - Design a safer escalation policy: evidence-quality checks and validated score thresholds rather than an unthresholded override; position the current output for human review (`docs/results-summary.md` §3).
 - Complete Eric's Google Fact Check coverage test to ground the retrieval-source choice (TODO from §B.3 above).
@@ -118,7 +143,7 @@
 - Lead with the verified result: a RoBERTa-LoRA classifier achieving **0.9957** accuracy and macro F1 on 9,398 held-out WELFake articles, **4.31** points above a TF-IDF baseline (`docs/results-summary.md` §1).
 - Be honest about the evidence layer: automatic NLI override made low-confidence articles worse (**76.0% → 64.0%**), so the deployed system keeps the classifier label final and treats NLI as context only (`docs/results-summary.md` §3, §4).
 - Close on the working system: a publicly deployed ZeroGPU Space verified end-to-end via its `/analyze` endpoint (**64.4** seconds, REAL at 99.57%, Very stable, NLI Supported) (`docs/results-summary.md` §4).
-- Acknowledge the two open evaluation items (calibration numbers, faithfulness review) as committed next steps rather than completed contributions (`docs/results-summary.md` §2, §4).
+- Acknowledge the remaining explanation-faithfulness review and Google Fact Check coverage test as open evaluation work rather than completed contributions (`docs/writeup-facts-w.md` §5; §B.3 above).
 
 ---
 

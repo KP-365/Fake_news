@@ -1,6 +1,6 @@
 # Results (Draft)
 
-This draft renders outline subsections A.1, A.2, A.3, A.5, and A.6 from `docs/report-results-discussion-outline.md` in academic report prose. Every number is reproduced verbatim from that outline; no new figures are introduced. Subsections still awaiting committed evidence (A.4, A.7) are retained as clearly marked placeholders only.
+This draft renders outline subsections A.1 through A.6 from `docs/report-results-discussion-outline.md` in academic report prose. Every reported result is reproduced from a committed artifact; no new figures are introduced. A.7 remains a clearly marked placeholder pending committed evidence.
 
 ## A.1 Experimental setup
 
@@ -79,7 +79,59 @@ One reporting caveat applies: these baseline values are taken from the notebook'
 
 ## A.4 MC Dropout calibration
 
-> **TODO - placeholder pending Kayleb's notebook run.** The committed `eval_MCFakeNews.ipynb` implements the 30-pass MC Dropout evaluation, predictive-entropy and mutual-information diagnostics, a rejection curve, a 15-bin reliability diagram, and ECE calculations for MC-averaged and deterministic confidence, but the notebook's executed outputs are not committed. No numerical calibration, ECE, entropy, or accuracy-versus-coverage result is available to quote. This subsection will be completed once the notebook is fully executed and its outputs are committed.
+The merged `eval_MCFakeNews.ipynb` (commit `799f359`) preserves an executed uncertainty evaluation with 30 stochastic forward passes per test article. Let $p_{tic}$ denote the softmax probability assigned to class $c$ for article $i$ during stochastic pass $t$, and let $T=30$ denote the number of passes. The probability used for MC prediction is the pass average
+
+$$
+\bar{p}_{ic} = \frac{1}{T}\sum_{t=1}^{T}p_{tic}.
+$$
+
+Here, $\bar{p}_{ic}$ is the MC-averaged probability for article $i$ and class $c$. Labels are selected by the maximum component of $\bar{p}_{i}$, matching the notebook's `mean_probabilities.argmax(axis=1)` implementation.
+
+MC averaging produced accuracy 0.9967 and macro F1 0.9967, compared with deterministic accuracy 0.9957 and macro F1 0.9957. The MC confusion matrix, with true labels as rows and real/fake order, is
+
+```text
+[[5175,   18],
+ [  13, 4192]]
+```
+
+The notebook also preserves the corresponding embedded MC confusion-matrix figure.
+
+Uncertainty was decomposed using predictive entropy and mutual information. Let $C$ denote the two-class label set and let $\epsilon>0$ denote the small numerical stabiliser added before taking logarithms. Predictive entropy for article $i$ is
+
+$$
+H_i = -\sum_{c \in C}\bar{p}_{ic}\log(\bar{p}_{ic}+\epsilon).
+$$
+
+The mean entropy of the per-pass predictions is
+
+$$
+\bar{H}^{\mathrm{pass}}_i = -\frac{1}{T}\sum_{t=1}^{T}\sum_{c \in C}p_{tic}\log(p_{tic}+\epsilon),
+$$
+
+and mutual information, used as the epistemic uncertainty estimate, is
+
+$$
+\mathrm{MI}_i = H_i - \bar{H}^{\mathrm{pass}}_i.
+$$
+
+The executed outputs report mean predictive entropy of 0.0347 over all test articles. Correct predictions had mean predictive entropy 0.0333, whereas incorrect predictions had 0.4816. Mean mutual information was 0.0015 overall, 0.0013 for correct predictions, and 0.0468 for incorrect predictions. Thus both reported uncertainty measures were substantially higher among errors. The notebook's embedded uncertainty figure presents the correct-versus-incorrect predictive-entropy boxplot alongside a rejection curve that orders articles from most to least certain.
+
+Calibration was measured with 15 equal-width confidence bins. Let $N$ be the number of test articles; let $q_i=\max_{c\in C}\bar{p}_{ic}$ be article $i$'s confidence; let $y_i$ be its true label; let $\mathbb{1}[\cdot]$ denote the indicator function; let $z_i=\mathbb{1}[\arg\max_{c\in C}\bar{p}_{ic}=y_i]$ indicate whether its prediction is correct; and let $B_b$ contain the articles assigned to confidence bin $b$. Bin accuracy and confidence are
+
+$$
+\mathrm{acc}(B_b)=\frac{1}{|B_b|}\sum_{i\in B_b}z_i, \qquad
+\mathrm{conf}(B_b)=\frac{1}{|B_b|}\sum_{i\in B_b}q_i.
+$$
+
+The notebook implements expected calibration error as
+
+$$
+\mathrm{ECE}=\sum_{b=1}^{15}\frac{|B_b|}{N}\left|\mathrm{acc}(B_b)-\mathrm{conf}(B_b)\right|.
+$$
+
+Here, $|B_b|$ is the number of articles in bin $b$, and the other symbols are defined above. The executed ECE was 0.0055 for MC Dropout and 0.0028 for deterministic confidence. Since a lower ECE indicates closer agreement between confidence and observed accuracy, MC averaging did not improve calibration in this run, despite its higher accuracy and macro F1. The notebook's embedded 15-bin reliability diagram visualises this comparison directly.
+
+These results are backed by the notebook's executed outputs and embedded figures. No `.npy` arrays were committed, so the artifact preserves the reported summaries and plots rather than the underlying probability and uncertainty arrays.
 
 ## A.5 Escalation experiment
 
