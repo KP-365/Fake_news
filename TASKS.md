@@ -31,14 +31,15 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 - [x] Implement WELFake cleaning, deduplication, and RoBERTa tokenisation - E
 - [ ] Build one shared LIAR/WELFake preprocessing pipeline
 - [x] Implement DDG evidence retrieval with bounded timeouts in `verify.py` - E
-  - *Proposal deviation: this replaces the proposed Google Fact Check Tools API.*
+  - *Proposal deviation: DDG remains the deployed retrieval source; Google Fact Check was later measured in the fixed-bucket experiment (`034f8bf`).*
 - [x] Implement zero-shot DeBERTa NLI verdicts: supported/refuted/insufficient - E
 - [x] Gate the 100 lowest-confidence MC Dropout cases into verification - E
 - [x] Map NLI verdicts to a final label and write per-article escalation CSV rows - E
 - [x] Complete and preserve a full 100-article escalation run
 - [x] Analyse verdict distribution and classifier/NLI disagreements
-- [ ] Measure evidence-retrieval coverage
-- [ ] Complete verification Related Work, Results, Discussion, and Conclusions sections
+- [x] Measure evidence-retrieval coverage with the fixed-bucket Google Fact Check experiment - evidence commit `034f8bf`
+- [x] Complete verification Results/Discussion outline and prose, including Conclusions - evidence commit `9cf1600`
+- [ ] Complete verification Related Work section
 
 ## Milestone 3: Explanation, baselines, and interface
 
@@ -53,9 +54,9 @@ Legend: **K** = Kayleb Parkes, **E** = Eric Kamalendran, **W** = William McKie
 
 ## Milestone 4: Integration and submission
 
-- [ ] Review a sample of generated explanations for faithfulness to the structured signals
+- [x] Review a sample of generated explanations for faithfulness to the structured signals - **8/10 faithful**; evidence commit `e529b46`
 - [x] Run and document an end-to-end demo test
-- [ ] Evaluate cross-dataset generalisation or clearly scope conclusions to WELFake
+- [x] Clearly scope conclusions to WELFake; cross-dataset evaluation remains future work - evidence commit `9cf1600`
 - [ ] Assemble the final report and submission checklist
 
 ## Current scope

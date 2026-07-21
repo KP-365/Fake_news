@@ -68,6 +68,10 @@ Status meanings:
 | 46 | Assemble the final report and submission checklist. | **Missing** | `TASKS.md` leaves final report assembly/submission unchecked. |
 | 47 | Have all group members contribute equally to experimental and writing work. | **Partial** | `TASKS.md` assigns work across K/E/W, but every checkbox remains unchecked and the reviewed files do not evidence completed contributions from all three owners. |
 
+### Since-completed note
+
+- **21 July 2026, item 30:** The historical **Missing** status above records the repository state at the time of the audit and is intentionally unchanged. The explanation-faithfulness review has since been completed in `evaluation/faithfulness_review.csv`: **8/10** sampled explanations were marked faithful, with the artifact committed in `e529b46`.
+
 ## Current validated result
 
 The implemented path is a **RoBERTa-LoRA classifier trained and evaluated on WELFake**, not the proposed BERT-LoRA classifier evaluated primarily on LIAR. `eval_FakeNews.ipynb` currently reports 0.9957 accuracy and 0.9952 fake-class F1 on its recreated WELFake held-out split, plus a confusion matrix. These are strong in-dataset classification results, but they do not satisfy the proposal's LIAR, macro-F1, calibration, selective-deferral, verification, explanation, baseline, or deployment commitments.
