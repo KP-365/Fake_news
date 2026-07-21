@@ -67,6 +67,8 @@ The 15-bin expected calibration errors are **0.0055 for MC Dropout** and **0.002
 
 The notebook embeds three relevant visual artifacts: the MC confusion-matrix figure; a combined correct-vs-incorrect predictive-entropy boxplot and rejection curve; and the 15-bin reliability diagram comparing MC with deterministic confidence. All values and figures are preserved in executed cells of `eval_MCFakeNews.ipynb`.
 
+The four source arrays are now committed under `evaluation/mc_arrays/`: `mean_probabilities.npy` with shape `(9398, 2)`, plus `predictive_entropy.npy`, `expected_entropy.npy`, and `true_labels.npy` with shape `(9398,)`. Loading these arrays independently reproduces predictive-entropy mean 0.0347, mutual-information mean 0.0015, argmax accuracy 0.9967, and confusion matrix `[[5175, 18], [13, 4192]]`.
+
 ## 2. Evidence-verification and escalation numbers
 
 The only committed escalation CSV is `evaluation/escalation_results.csv`. Recomputing from that CSV confirms the figures summarized in `docs/results-summary.md`:
@@ -122,11 +124,10 @@ These behaviors are backed by `explain.py`, `pipeline.py`, `app.py`, and `eval_f
 
 ## 5. Claims that currently lack committed artifact backing
 
-The MC summary results above are now backed by executed notebook outputs. The remaining reporting boundaries are:
+The MC summary results, embedded figures, and four raw `.npy` arrays are now committed artifacts. The remaining reporting boundaries are:
 
-1. **Raw MC array checkpoints.** No `.npy` arrays were committed with merge `799f359`; only the executed `eval_MCFakeNews.ipynb` outputs and embedded figures are preserved. Report the backed summary values, but do not claim that raw MC probability, entropy, or mutual-information arrays are available as committed artifacts.
-2. **Explanation faithfulness rate or human-evaluation result.** `eval_faithfulness.ipynb` provides the workflow, but no completed `evaluation/faithfulness_review.csv` is committed. `docs/results-summary.md` explicitly states that no explanation-faithfulness or human-evaluation result has been completed.
-3. **Baseline comparison CSV.** Baseline results are preserved in `docs/results-summary.md` and the `eval_FakeNews.ipynb` output, but no dedicated baseline CSV is committed under `evaluation/`. The only committed evaluation CSV is `escalation_results.csv`.
-4. **Permanent output transcript for the deployed Space run.** The verified endpoint result is documented in `docs/results-summary.md`; no separate committed log file stores the full response payload. Report the summary values only.
-5. **Stable live DDG evidence URLs for future runs.** `docs/results-summary.md` warns that DDG search results are live web data and can change between runs.
-6. **Current live Space RUNNING state in repository evidence.** The Space can be observed externally, but the repository does not commit a runtime-status artifact. Use the URL and documented endpoint verification, not a claimed repository-backed runtime state.
+1. **Explanation faithfulness rate or human-evaluation result.** `eval_faithfulness.ipynb` provides the workflow, but no completed `evaluation/faithfulness_review.csv` is committed. `docs/results-summary.md` explicitly states that no explanation-faithfulness or human-evaluation result has been completed.
+2. **Baseline comparison CSV.** Baseline results are preserved in `docs/results-summary.md` and the `eval_FakeNews.ipynb` output, but no dedicated baseline CSV is committed under `evaluation/`. The only committed evaluation CSV is `escalation_results.csv`.
+3. **Permanent output transcript for the deployed Space run.** The verified endpoint result is documented in `docs/results-summary.md`; no separate committed log file stores the full response payload. Report the summary values only.
+4. **Stable live DDG evidence URLs for future runs.** `docs/results-summary.md` warns that DDG search results are live web data and can change between runs.
+5. **Current live Space RUNNING state in repository evidence.** The Space can be observed externally, but the repository does not commit a runtime-status artifact. Use the URL and documented endpoint verification, not a claimed repository-backed runtime state.

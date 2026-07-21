@@ -131,7 +131,7 @@ $$
 
 Here, $|B_b|$ is the number of articles in bin $b$, and the other symbols are defined above. The executed ECE was 0.0055 for MC Dropout and 0.0028 for deterministic confidence. Since a lower ECE indicates closer agreement between confidence and observed accuracy, MC averaging did not improve calibration in this run, despite its higher accuracy and macro F1. The notebook's embedded 15-bin reliability diagram visualises this comparison directly.
 
-These results are backed by the notebook's executed outputs and embedded figures. No `.npy` arrays were committed, so the artifact preserves the reported summaries and plots rather than the underlying probability and uncertainty arrays.
+These results are backed by the notebook's executed outputs, embedded figures, and four arrays now committed under `evaluation/mc_arrays/`. Independently loading the arrays reproduces the reported predictive-entropy mean, mutual-information mean, argmax accuracy, and confusion matrix.
 
 ## A.5 Escalation experiment
 

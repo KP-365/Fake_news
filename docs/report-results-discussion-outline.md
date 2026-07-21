@@ -61,7 +61,7 @@ $$
   Here $N$ is the test-set size, $B_b$ contains examples whose maximum predicted confidence falls in equal-width bin $b$, $\mathrm{acc}(B_b)$ is mean correctness in that bin, and $\mathrm{conf}(B_b)$ is mean confidence (`eval_MCFakeNews.ipynb`, calibration cell).
 - Report ECE **0.0055** for MC Dropout versus **0.0028** deterministic. Since lower ECE is better, MC averaging did **not** improve calibration in this run, despite its higher accuracy (`eval_MCFakeNews.ipynb`, executed calibration cell).
 - Cite the embedded 15-bin reliability diagram comparing MC and deterministic confidence (`eval_MCFakeNews.ipynb`, executed calibration cell).
-- Artifact caveat: commit `799f359` preserves executed outputs and embedded figures, but no `.npy` arrays were committed (`docs/writeup-facts-w.md` §5).
+- Artifact backing: the four arrays are committed under `evaluation/mc_arrays/`; loading them reproduces the reported entropy, mutual-information, accuracy, and confusion-matrix values (`docs/writeup-facts-w.md` §1A).
 
 ### A.5 Escalation experiment
 
@@ -126,13 +126,13 @@ $$
 - **In-dataset only:** all classifier metrics are WELFake held-out, not LIAR or cross-dataset (`docs/results-summary.md` §4).
 - **Escalation scope:** the experiment covers the 100 least-confident articles, not the full 9,398 (`docs/results-summary.md` §4).
 - **Live retrieval:** DDG results change between runs; the evidence layer is not reproducible as committed (`docs/results-summary.md` §4).
-- **Calibration artifact boundary:** ECE and uncertainty summaries are now preserved in executed notebook outputs, but the underlying `.npy` arrays were not committed (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §5).
+- **Calibration limitation:** MC Dropout improved accuracy but had worse ECE than deterministic confidence in this run, so MC averaging should not be described as a calibration improvement (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
 - **Missing faithfulness evaluation:** no human-explanation result completed (`docs/results-summary.md` §4).
 - **Unsafe override mapping:** the verified NLI layer cannot safely override the classifier as implemented (`docs/results-summary.md` §3).
 
 ### B.5 Future work
 
-- Preserve raw MC probability and uncertainty arrays in a future run, and investigate why MC Dropout improved accuracy while its ECE was worse than deterministic confidence (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §5).
+- Investigate why MC Dropout improved accuracy while its ECE was worse than deterministic confidence (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
 - Complete the 10-row explanation-faithfulness review and commit `evaluation/faithfulness_review.csv` (TODO from `docs/writeup-facts-w.md` §3, §5).
 - Design a safer escalation policy: evidence-quality checks and validated score thresholds rather than an unthresholded override; position the current output for human review (`docs/results-summary.md` §3).
 - Complete Eric's Google Fact Check coverage test to ground the retrieval-source choice (TODO from §B.3 above).
