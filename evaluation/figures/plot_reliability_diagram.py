@@ -21,6 +21,7 @@ correct = predicted_labels == true_labels
 bin_edges = np.linspace(0.0, 1.0, 16)
 bin_confidence = []
 bin_accuracy = []
+bin_count = []
 mc_ece = 0.0
 for lower, upper in zip(bin_edges[:-1], bin_edges[1:]):
     in_bin = (confidence > lower) & (confidence <= upper)
@@ -29,6 +30,7 @@ for lower, upper in zip(bin_edges[:-1], bin_edges[1:]):
         accuracy = correct[in_bin].mean()
         bin_confidence.append(mean_confidence)
         bin_accuracy.append(accuracy)
+        bin_count.append(int(in_bin.sum()))
         mc_ece += in_bin.mean() * abs(accuracy - mean_confidence)
 
 assert f'{mc_ece:.4f}' == '0.0055'
@@ -51,6 +53,31 @@ ax.plot(
     linewidth=1.6,
     label='MC Dropout',
 )
+# Individual offsets keep the high-confidence labels separate at report column width.
+annotation_positions = [
+    ((-8, 10), 'right', 'bottom'),
+    ((0, 8), 'center', 'bottom'),
+    ((0, 10), 'center', 'bottom'),
+    ((0, 10), 'center', 'bottom'),
+    ((-8, 12), 'right', 'bottom'),
+    ((8, -16), 'left', 'top'),
+    ((0, -28), 'center', 'top'),
+    ((-8, -7), 'right', 'top'),
+]
+for x_value, y_value, count, position in zip(
+    bin_confidence, bin_accuracy, bin_count, annotation_positions
+):
+    offset, horizontal, vertical = position
+    ax.annotate(
+        f'n={count:,}',
+        (x_value, y_value),
+        xytext=offset,
+        textcoords='offset points',
+        ha=horizontal,
+        va=vertical,
+        fontsize=7.5,
+        bbox={'facecolor': 'white', 'edgecolor': 'none', 'alpha': 0.72, 'pad': 0.2},
+    )
 ax.text(
     0.04,
     0.94,
