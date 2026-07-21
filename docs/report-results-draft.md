@@ -8,9 +8,17 @@ All experiments were conducted on the WELFake corpus using a deterministic, stra
 
 It should be emphasised that these are in-dataset results on the held-out WELFake split rather than a cross-dataset evaluation on LIAR or any external corpus; this scope is retained throughout the Results section and returned to in the Discussion.
 
+All reported metrics are defined on the binary confusion counts. For a given class, $\mathrm{TP}$ denotes true positives (articles of that class predicted as that class), $\mathrm{FP}$ false positives (articles of the other class predicted as that class), $\mathrm{TN}$ true negatives (articles of the other class predicted as the other class), and $\mathrm{FN}$ false negatives (articles of that class predicted as the other class).
+
 ## A.2 Classifier performance
 
-The RoBERTa-LoRA classifier was evaluated on the full held-out test set. Its overall metrics are presented in Table 1.
+The RoBERTa-LoRA classifier was evaluated on the full held-out test set. Accuracy is the share of all test articles predicted correctly:
+
+$$
+\mathrm{Accuracy} = \frac{\mathrm{TP} + \mathrm{TN}}{\mathrm{TP} + \mathrm{FP} + \mathrm{TN} + \mathrm{FN}}
+$$
+
+where the counts are taken over the full test set. Its overall metrics are presented in Table 1.
 
 | Metric | Value |
 |---|---:|
@@ -21,7 +29,21 @@ The RoBERTa-LoRA classifier was evaluated on the full held-out test set. Its ove
 
 **Table 1.** Held-out WELFake metrics for the RoBERTa-LoRA classifier.
 
-Per-class precision, recall, and F1 are reported in Table 2.
+Per-class precision, recall, and F1 are defined for each class as
+
+$$
+\mathrm{Precision}_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FP}_c}, \qquad
+\mathrm{Recall}_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FN}_c}, \qquad
+F1_c = \frac{2 \cdot \mathrm{Precision}_c \cdot \mathrm{Recall}_c}{\mathrm{Precision}_c + \mathrm{Recall}_c}
+$$
+
+where $\mathrm{TP}_c$, $\mathrm{FP}_c$, and $\mathrm{FN}_c$ are the true-positive, false-positive, and false-negative counts for class $c \in \{\text{real}, \text{fake}\}$. The macro metrics in Table 1 are the unweighted mean of the per-class scores, matching scikit-learn's `average="macro"` as used in `eval_FakeNews.ipynb`; for example, macro F1 is
+
+$$
+F1_{\mathrm{macro}} = \frac{1}{|C|} \sum_{c \in C} F1_c, \qquad C = \{\text{real}, \text{fake}\}.
+$$
+
+Per-class results are reported in Table 2.
 
 | Class | Precision | Recall | F1 | Support |
 |---|---:|---:|---:|---:|
@@ -61,9 +83,27 @@ One reporting caveat applies: these baseline values are taken from the notebook'
 
 ## A.5 Escalation experiment
 
-To test whether external evidence could rescue the classifier's most uncertain predictions, the 100 WELFake test articles with the lowest MC Dropout confidence were escalated to a verification layer combining DDG retrieval with DeBERTa NLI. The layer produced 42 supported, 32 refuted, and 26 insufficient verdicts. A supported verdict maps the label to real, a refuted verdict maps it to fake, and an insufficient verdict retains the classifier label unchanged.
+To test whether external evidence could rescue the classifier's most uncertain predictions, the 100 WELFake test articles with the lowest MC Dropout confidence were escalated to a verification layer combining DDG retrieval with DeBERTa NLI. The layer produced 42 supported, 32 refuted, and 26 insufficient verdicts. The final label is determined by the override rule implemented in `evaluation/eval_escalation.py` (`VERDICT_TO_LABEL` with a fallback to the classifier label):
 
-The results, recorded in `evaluation/escalation_results.csv`, are presented in Table 4.
+$$
+\hat{y}^{\mathrm{final}}_i =
+\begin{cases}
+\text{real}, & v_i = \text{supported} \\
+\text{fake}, & v_i = \text{refuted} \\
+\hat{y}^{\mathrm{clf}}_i, & v_i = \text{insufficient}
+\end{cases}
+$$
+
+where $v_i$ is the NLI verdict for article $i$ and $\hat{y}^{\mathrm{clf}}_i$ is the classifier's label for that article.
+
+For each verdict group $g$ of size $n_g$, classifier accuracy before escalation and final accuracy after escalation are the ratios
+
+$$
+\mathrm{Acc}^{\mathrm{clf}}_g = \frac{1}{n_g} \sum_{i \in g} \mathbb{1}\!\left[\hat{y}^{\mathrm{clf}}_i = y_i\right], \qquad
+\mathrm{Acc}^{\mathrm{final}}_g = \frac{1}{n_g} \sum_{i \in g} \mathbb{1}\!\left[\hat{y}^{\mathrm{final}}_i = y_i\right]
+$$
+
+where $y_i$ is the true label of article $i$ and $\mathbb{1}[\cdot]$ is the indicator function, equal to 1 when its condition holds and 0 otherwise; the overall row uses $g$ equal to the full 100-article bucket. The results, recorded in `evaluation/escalation_results.csv`, are presented in Table 4.
 
 | Verdict | Rows | Classifier accuracy | Actual overrides | Fixed | Broken | Final accuracy |
 |---|---:|---:|---:|---:|---:|---:|
