@@ -1,6 +1,6 @@
 # Results and Discussion (Draft)
 
-This draft renders outline subsections A.1 through A.7 and B.3 from `docs/report-results-discussion-outline.md` in academic report prose. Every reported result is reproduced from a committed artifact; no new figures are introduced.
+This draft renders outline subsections A.1 through A.7 and B.1 through B.6 from `docs/report-results-discussion-outline.md` in academic report prose. Every reported result is reproduced from a committed artifact; no new figures are introduced.
 
 ## A.1 Experimental setup
 
@@ -186,6 +186,26 @@ The 80% rate should be treated as descriptive rather than definitive: it comes f
 
 # Discussion
 
+## B.1 Interpreting near-ceiling in-dataset accuracy
+
+The RoBERTa-LoRA classifier achieved 0.9957 accuracy and 0.9957 macro F1 on the held-out WELFake test set, placing its in-dataset performance close to the metric ceiling. The confusion profile provides necessary context for this aggregate result. The classifier made 40 errors, comprising 15 false-fake predictions and 25 false-real predictions. Thus, the high overall score does not imply error-free classification, and the remaining errors occur in both directions (`docs/results-summary.md` §1).
+
+The comparison with TF-IDF further indicates that the transformer contributes beyond word-frequency patterns. Its accuracy was 4.31 percentage points higher than the TF-IDF baseline on the same held-out split. This margin supports the value of contextual representation learning within WELFake, but it does not establish equivalent gains under distribution shift (`docs/results-summary.md` §1).
+
+The scope of this finding is therefore narrow. All classifier results are in-dataset measurements from one corpus, not LIAR results or a cross-dataset evaluation. WELFake's cleaned, label-verified construction may contribute to the near-ceiling performance, but this is an interpretation rather than a measured explanation because no committed cross-dataset artifact tests it (`docs/results-summary.md` §4; `docs/writeup-facts-w.md` §5).
+
+## B.2 Why NLI override failed
+
+The escalation experiment produced a clear negative result. On the low-confidence bucket, accuracy fell from 76.0% to 64.0% across 34 label changes. The override corrected 11 classifier mistakes but broke 23 predictions that had originally been correct. The imbalance between fixes and breaks shows that the evidence layer did not merely add noise around an unchanged result; its automatic decisions systematically reduced accuracy on the cases selected for intervention (`docs/results-summary.md` §3).
+
+The `refuted` group was the principal failure mode. Its override produced 4 fixes and 16 breaks, reducing accuracy within that group from 71.9% to 34.4%. By contrast, the `supported` group was neutral, with 7 fixes and 7 breaks. The `insufficient` group retained the classifier label and had the highest classifier accuracy at 84.6%. These outcomes indicate that abstaining was safer than forcing a label when the verifier's evidence was not strong enough to resolve the claim (`docs/results-summary.md` §3).
+
+The result is consistent with limitations in the evidence-to-label mapping. Retrieved snippets may be irrelevant, ambiguous, or concerned with a related claim, while a contradiction score does not by itself establish that the full article is false. Mapping every `refuted` verdict directly to fake therefore treats the NLI relation as a reliable article-level judgement without first validating evidence relevance or the decision threshold. The experiment shows that this unthresholded override policy is unsafe, not that retrieval or NLI has no value. The evidence is better suited to contextual display, human review, or a future policy with evidence-quality checks and validated thresholds (`docs/results-summary.md` §3).
+
+The explanation review exposes the same evidence-conflict weakness in an independent component. In the escalation rule, `refuted` evidence displaced classifier labels and broke correct predictions. In source row 8 of the faithfulness review, a `supported` NLI verdict that conflicted with a fake classifier label was instead narrated as evidence reinforcing fake. The decision layer and explanation layer perform different functions, yet both failed to preserve the direction and role of an evidence verdict when it conflicted with the classifier output. This parallel does not demonstrate a shared implementation defect, but it does show a common system-level risk: evidence can be made to control or rationalise a label rather than being represented as a separate, potentially conflicting signal (`evaluation/escalation_results.csv`; `evaluation/faithfulness_review.csv`, commit `e529b46`).
+
+This risk is amplified by the use of live DDG data, because search results can change between runs. The verifier's output is therefore sensitive both to the semantics of retrieved snippets and to their availability at query time. These findings support the deployed policy in which the classifier remains final and NLI evidence is presented only as context (`docs/results-summary.md` §4).
+
 ## B.3 Google Fact Check coverage and live-retrieval instability
 
 The Google-first experiment in commit `034f8bf` evaluated the same frozen 100-row low-confidence bucket as the original escalation experiment. The Google Fact Check API returned zero candidates, giving 0.0% coverage (0/100) and no usable verdicts. Crucially, this was an audited coverage result rather than a failed request: all 100 rows record a clean `no Google fact-check match` reason, while 0/100 record an HTTP, API-key, or other request error. Agreement with the true labels is therefore not applicable (0/0), because there were no Google verdicts to compare (`google factchek/evaluation/google_escalation_results.csv`; `google factchek/evaluation/google_escalation_summary.txt`).
@@ -195,3 +215,35 @@ On this fixed bucket, the classifier alone correctly labelled 76 of 100 articles
 Those two DDG + DeBERTa passes produced markedly different verdict distributions. The original `evaluation/escalation_results.csv` contains 42 supported, 32 refuted, and 26 insufficient verdicts, whereas `google_escalation_results.csv` contains 30 supported, 12 refuted, and 58 insufficient verdicts. The shift from 42/32/26 to 30/12/58, despite identical final accuracy of 64.0% in both passes, demonstrates that the live-retrieval verdicts were unstable between runs and that aggregate accuracy alone obscures this behavior.
 
 The `source=none` value on the 58 insufficient rows in the later CSV must not be interpreted as an absence of retrieved evidence. Each of those rows records `DDG evidence evaluated with DeBERTa NLI`, showing that evidence was retrieved and scored but did not clear the NLI verdict threshold; the verifier uses the distinct reason `no DDG evidence retrieved` for a true no-evidence outcome. Together, the zero Google coverage and unstable fallback distributions support keeping retrieved evidence as context rather than treating it as a reproducible automatic override. This conclusion is limited to the frozen bucket and the query-time responses committed in `034f8bf`, not to all Google Fact Check queries, datasets, or future runs.
+
+## B.4 Limitations
+
+Several limitations constrain the interpretation of these results. First, all classifier metrics were measured on the held-out WELFake split. They are not LIAR results and do not constitute a cross-dataset test. The near-ceiling classifier scores should therefore be interpreted as in-dataset performance rather than evidence of general fake-news detection under distribution shift (`docs/results-summary.md` §4).
+
+Second, the escalation experiment covers only the 100 least-confident articles, not the full 9,398-article test set. It characterises the evidence layer where the classifier was most uncertain, but it does not estimate the effect of escalation across the entire held-out distribution. DDG retrieval is also live and can change between runs, so the evidence layer is not reproducible from the committed labels alone. The verdict-distribution shift documented in §B.3 makes this limitation observable rather than hypothetical (`docs/results-summary.md` §4; `google factchek/evaluation/google_escalation_results.csv`).
+
+Third, MC Dropout improved accuracy while producing worse ECE than deterministic confidence in this run. MC averaging must therefore not be described as a calibration improvement. The discrepancy between discrimination and calibration requires further investigation before uncertainty estimates are used to govern higher-stakes routing decisions (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
+
+Fourth, the explanation-faithfulness result is based on 8/10 faithful explanations from a sample of 10 assessed by a single reviewer. It provides a completed descriptive result, but no multi-reviewer agreement or larger-sample estimate is available. The row-8 verdict inversion also shows that a high aggregate faithfulness rate can coexist with a consequential evidence-conflict failure (`evaluation/faithfulness_review.csv`, commit `e529b46`).
+
+Finally, the implemented NLI mapping is not safe as an automatic override. Taken together, the escalation breaks and explanation inversion indicate that evidence conflicts require explicit representation and validation. Treating a verdict as either a replacement label or post hoc support for a fixed label can erase the distinction between what the classifier predicted and what the external evidence actually indicates (`docs/results-summary.md` §3).
+
+## B.5 Future work
+
+Future work should first investigate why MC Dropout improved accuracy while its ECE was worse than deterministic confidence. The routing policy should not assume that improved classification accuracy implies improved calibration, and any uncertainty threshold should be validated against the decision it is intended to support (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
+
+The explanation-faithfulness evaluation should be expanded beyond the initial 10-row sample. Multiple independent reviewers should apply a prespecified rubric, and the resulting analysis should report inter-rater agreement. The sample should deliberately include cases in which the NLI verdict conflicts with the classifier label, including the row-8 inversion pattern, because these cases directly test whether explanations preserve evidence direction instead of rationalising the classifier output (`evaluation/faithfulness_review.csv`, commit `e529b46`).
+
+The escalation policy should likewise replace the unthresholded override with evidence-quality checks and validated score thresholds. Until such a policy demonstrates a net benefit, external evidence should support human review rather than automatically determine the final label. Evaluation should separately measure evidence relevance, verdict correctness, and the safety of applying a verdict when it conflicts with the classifier (`docs/results-summary.md` §3).
+
+Google Fact Check coverage should be tested beyond the frozen bucket and with alternative claim-extraction and query formulations, because the committed experiment establishes 0/100 coverage only for those queries at that time. Cross-dataset evaluation on LIAR is also required to test whether the classifier and evidence-policy findings generalise beyond WELFake (`google factchek/evaluation/google_escalation_summary.txt`, commit `034f8bf`; `docs/results-summary.md` §4).
+
+## B.6 Conclusion
+
+The principal verified result is a RoBERTa-LoRA classifier with 0.9957 accuracy and 0.9957 macro F1 on 9,398 held-out WELFake articles, exceeding the TF-IDF baseline by 4.31 percentage points in accuracy. This establishes strong in-dataset performance while leaving cross-dataset generalisation unresolved (`docs/results-summary.md` §1, §4).
+
+The evidence layer produced the report's central negative result. Automatic NLI override reduced low-confidence accuracy from 76.0% to 64.0%, so the deployed system appropriately keeps the classifier label final and presents NLI as context. The completed explanation review found 8/10 explanations faithful (80%), but the row-8 failure inverted a `supported` verdict to reinforce a fake label. Together with the `refuted` overrides that broke correct predictions, this failure shows the same evidence-conflict weakness in two independent components: both the decision policy and the explanation layer can misrepresent the role of evidence when it disagrees with the classifier (`docs/results-summary.md` §3, §4; `evaluation/faithfulness_review.csv`, commit `e529b46`).
+
+The Google experiment added a second negative finding. Google Fact Check had zero coverage on the frozen bucket, while the repeated DDG fallback exposed live-retrieval verdict instability. These findings support retaining evidence as contextual information and motivate broader coverage and reproducibility studies (`google factchek/evaluation/google_escalation_results.csv`; `google factchek/evaluation/google_escalation_summary.txt`, commit `034f8bf`).
+
+Despite these limitations, the system is operational as a public ZeroGPU Space. Its verified `/analyze` call completed in 64.4 seconds and returned REAL at 99.57% confidence, with Very stable prediction stability and an NLI verdict of Supported. The resulting contribution is therefore both a high-performing in-dataset classifier and an empirically grounded demonstration of why external evidence must be handled as a distinct, fallible signal rather than an automatic source of label authority (`docs/results-summary.md` §4).
