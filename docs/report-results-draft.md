@@ -1,6 +1,6 @@
-# Results (Draft)
+# Results and Discussion (Draft)
 
-This draft renders outline subsections A.1 through A.6 from `docs/report-results-discussion-outline.md` in academic report prose. Every reported result is reproduced from a committed artifact; no new figures are introduced. A.7 remains a clearly marked placeholder pending committed evidence.
+This draft renders outline subsections A.1 through A.7 and B.3 from `docs/report-results-discussion-outline.md` in academic report prose. Every reported result is reproduced from a committed artifact; no new figures are introduced.
 
 ## A.1 Experimental setup
 
@@ -178,4 +178,20 @@ The call completed in 64.4 seconds wall-clock and returned a final classifier la
 
 ## A.7 Explanation faithfulness
 
-> **TODO - placeholder pending the 10-row human review.** `eval_faithfulness.ipynb` provides the manual review workflow, sampling 10 escalation rows with `np.random.default_rng(42)`, regenerating explanations from structured signals, and exporting `evaluation/faithfulness_review.csv`. No completed review CSV is committed, and no explanation-faithfulness or human-evaluation result has been completed. No faithfulness rate is reported here until the review is committed.
+The completed human review in commit `e529b46` assessed 10 generated explanations against their supplied structured signals. Eight explanations were marked `yes` for matching those signals and two were marked `no`, giving a faithfulness rate of 8/10 (80%) (`evaluation/faithfulness_review.csv`).
+
+Both failures reveal concrete attribution errors. For source row 8, the NLI verdict was `supported`, with entailment 0.98, and therefore conflicted with the fake classifier label. The explanation instead claimed that the evidence aligned with and reinforced the fake label, reversing the direction of the NLI verdict. For source row 94, the explanation attributed the classifier's decision to five retrieved evidence items even though those items were not inputs to the classifier.
+
+The 80% rate should be treated as descriptive rather than definitive: it comes from a small 10-explanation sample assessed by a single reviewer. A larger review with multiple independent raters is required to estimate broader explanation faithfulness and inter-rater reliability.
+
+# Discussion
+
+## B.3 Google Fact Check coverage and live-retrieval instability
+
+The Google-first experiment in commit `034f8bf` evaluated the same frozen 100-row low-confidence bucket as the original escalation experiment. The Google Fact Check API returned zero candidates, giving 0.0% coverage (0/100) and no usable verdicts. Crucially, this was an audited coverage result rather than a failed request: all 100 rows record a clean `no Google fact-check match` reason, while 0/100 record an HTTP, API-key, or other request error. Agreement with the true labels is therefore not applicable (0/0), because there were no Google verdicts to compare (`google factchek/evaluation/google_escalation_results.csv`; `google factchek/evaluation/google_escalation_summary.txt`).
+
+On this fixed bucket, the classifier alone correctly labelled 76 of 100 articles (76.0%), the previously committed DDG-only final labels correctly labelled 64 of 100 (64.0%), and the Google-first hybrid also correctly labelled 64 of 100 (64.0%). Since Google supplied no candidate on any row, every claim fell through to the live DDG + DeBERTa verifier. The unchanged aggregate accuracy therefore cannot be attributed to Google; it compares the stored outcome of the original DDG pass with the outcome of a later live fallback pass.
+
+Those two DDG + DeBERTa passes produced markedly different verdict distributions. The original `evaluation/escalation_results.csv` contains 42 supported, 32 refuted, and 26 insufficient verdicts, whereas `google_escalation_results.csv` contains 30 supported, 12 refuted, and 58 insufficient verdicts. The shift from 42/32/26 to 30/12/58, despite identical final accuracy of 64.0% in both passes, demonstrates that the live-retrieval verdicts were unstable between runs and that aggregate accuracy alone obscures this behavior.
+
+The `source=none` value on the 58 insufficient rows in the later CSV must not be interpreted as an absence of retrieved evidence. Each of those rows records `DDG evidence evaluated with DeBERTa NLI`, showing that evidence was retrieved and scored but did not clear the NLI verdict threshold; the verifier uses the distinct reason `no DDG evidence retrieved` for a true no-evidence outcome. Together, the zero Google coverage and unstable fallback distributions support keeping retrieved evidence as context rather than treating it as a reproducible automatic override. This conclusion is limited to the frozen bucket and the query-time responses committed in `034f8bf`, not to all Google Fact Check queries, datasets, or future runs.

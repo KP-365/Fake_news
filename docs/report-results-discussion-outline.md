@@ -91,10 +91,9 @@ $$
 
 ### A.7 Explanation faithfulness
 
-> **TODO - pending the 10-row human review.**
-> `eval_faithfulness.ipynb` provides the manual review workflow: sample 10 escalation rows with `np.random.default_rng(42)`, regenerate explanations from structured signals, and export `evaluation/faithfulness_review.csv` (`docs/writeup-facts-w.md` §3).
-> No completed `evaluation/faithfulness_review.csv` is committed, and no explanation-faithfulness or human-evaluation result has been completed (`docs/writeup-facts-w.md` §5; `docs/results-summary.md` §4).
-> **Do not report a faithfulness rate until the review CSV is committed.** When it lands, this subsection reports the yes/no match rate across the 10 rows and discusses failure cases.
+- Report the completed **10-row** human review: **8/10 explanations were marked faithful (80%)** and **2/10 were marked unfaithful** (`evaluation/faithfulness_review.csv`, commit `e529b46`).
+- Describe both documented failures. In source row **8**, an NLI verdict of `supported` with entailment **0.98** conflicted with a fake classifier label, but the explanation said that the evidence aligned with fake, inverting the verdict's direction. In source row **94**, the explanation attributed the classifier decision to evidence items that the classifier never saw (`evaluation/faithfulness_review.csv`).
+- Interpret the result narrowly: the review checks whether each explanation matches its supplied structured signals. It is a small, single-reviewer sample and does not establish population-level faithfulness or inter-rater reliability.
 
 ---
 
@@ -115,11 +114,14 @@ $$
 - Avoid overclaiming: the results do not show retrieval/NLI is useless - they show the current mapping is unsafe; better suited to human review or a future escalation policy with evidence-quality checks and validated thresholds (`docs/results-summary.md` §3).
 - Live-data caveat: DDG results are live web data and can change between runs (`docs/results-summary.md` §4).
 
-### B.3 Google Fact Check API omission
+### B.3 Google Fact Check coverage and live-retrieval instability
 
-> **TODO - pending Eric's coverage test.**
-> The `google factchek/` directory (Eric's commits) and its `README_GOOGLE_FACTCHECK.md` exist in the repository, but no coverage or comparison result is committed in the evaluation artifacts (`docs/writeup-facts-w.md` artifact map; repository `google factchek/` directory).
-> **Do not write claims about Google Fact Check coverage, agreement rates, or why it was omitted until Eric's coverage test is committed.** When it lands, this subsection reports what the API covers relative to WELFake claims and justifies the DDG retrieval choice with evidence rather than assertion.
+- Commit `034f8bf` adds the audited fixed-bucket outputs `google factchek/evaluation/google_escalation_results.csv` and `google factchek/evaluation/google_escalation_summary.txt` for the same **100** rows as `evaluation/escalation_results.csv`.
+- Report **0.0% Google coverage (0/100)**. Every row records `google_reason = no Google fact-check match`, all **100/100** are audited clean zero-candidate no-match responses, and **0/100** record a request or API-key error. Google agreement is therefore **not applicable (0/0)** rather than zero agreement (`google factchek/evaluation/google_escalation_summary.txt`, commit `034f8bf`).
+- Present the three-way comparison on the frozen bucket: classifier-only **76.0% (76/100)**, the previously committed DDG-only final labels **64.0% (64/100)**, and the Google-first hybrid final labels **64.0% (64/100)**. Because Google returned no candidates, it supplied no usable verdicts and all rows fell through to the live DDG + DeBERTa fallback; the equal DDG-only and hybrid aggregate accuracies do not show a Google contribution.
+- Compare the two committed live DDG + DeBERTa passes. The original `evaluation/escalation_results.csv` contains **42 supported / 32 refuted / 26 insufficient** verdicts, whereas the fallback pass recorded in `google_escalation_results.csv` contains **30 supported / 12 refuted / 58 insufficient**. This substantial verdict-distribution shift, despite both passes ending at **64.0% (64/100)** aggregate accuracy, is direct evidence that live-retrieval verdicts were unstable between runs; aggregate accuracy alone conceals that instability.
+- Clarify the audit semantics: the **58** `source=none` rows in the Google-run CSV do **not** mean that DDG returned no evidence. All 58 record `reason = DDG evidence evaluated with DeBERTa NLI`; they are `insufficient` because the retrieved evidence did not clear the NLI verdict threshold. A true no-evidence outcome would instead carry `reason = no DDG evidence retrieved` (`google factchek/verify.py`; `google_escalation_results.csv`, commit `034f8bf`).
+- Reporting boundary: this experiment establishes zero Google Fact Check coverage for this frozen low-confidence WELFake bucket at the time of the run. It does not establish that the API has zero coverage for other datasets, claim formulations, or times. The result supports retaining a fallback source, while the two DDG distributions show that live retrieval should remain contextual rather than a reproducible automatic override.
 
 ### B.4 Limitations
 
@@ -127,15 +129,15 @@ $$
 - **Escalation scope:** the experiment covers the 100 least-confident articles, not the full 9,398 (`docs/results-summary.md` §4).
 - **Live retrieval:** DDG results change between runs; the evidence layer is not reproducible as committed (`docs/results-summary.md` §4).
 - **Calibration limitation:** MC Dropout improved accuracy but had worse ECE than deterministic confidence in this run, so MC averaging should not be described as a calibration improvement (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
-- **Missing faithfulness evaluation:** no human-explanation result completed (`docs/results-summary.md` §4).
+- **Faithfulness-review scope:** the completed review found **8/10** explanations faithful, but it covers only **10** explanations judged by a single reviewer; no multi-reviewer agreement or larger-sample estimate is available (`evaluation/faithfulness_review.csv`, commit `e529b46`).
 - **Unsafe override mapping:** the verified NLI layer cannot safely override the classifier as implemented (`docs/results-summary.md` §3).
 
 ### B.5 Future work
 
 - Investigate why MC Dropout improved accuracy while its ECE was worse than deterministic confidence (`eval_MCFakeNews.ipynb`; `docs/writeup-facts-w.md` §1A).
-- Complete the 10-row explanation-faithfulness review and commit `evaluation/faithfulness_review.csv` (TODO from `docs/writeup-facts-w.md` §3, §5).
+- Scale the explanation-faithfulness evaluation beyond the initial **10-row** sample, use multiple independent reviewers with a prespecified rubric, and report inter-rater agreement; include targeted cases where the NLI verdict conflicts with the classifier label, such as the row-8 inversion (`evaluation/faithfulness_review.csv`, commit `e529b46`).
 - Design a safer escalation policy: evidence-quality checks and validated score thresholds rather than an unthresholded override; position the current output for human review (`docs/results-summary.md` §3).
-- Complete Eric's Google Fact Check coverage test to ground the retrieval-source choice (TODO from §B.3 above).
+- Broaden the Google Fact Check coverage test beyond this frozen bucket and evaluate alternative claim extraction/query formulations; the committed run establishes **0/100** coverage only for these queries at this time (commit `034f8bf`; §B.3 above).
 - Evaluate cross-dataset generalization (LIAR), which the current artifacts do not cover (`docs/results-summary.md` §4).
 
 ### B.6 Conclusion
@@ -143,7 +145,7 @@ $$
 - Lead with the verified result: a RoBERTa-LoRA classifier achieving **0.9957** accuracy and macro F1 on 9,398 held-out WELFake articles, **4.31** points above a TF-IDF baseline (`docs/results-summary.md` §1).
 - Be honest about the evidence layer: automatic NLI override made low-confidence articles worse (**76.0% → 64.0%**), so the deployed system keeps the classifier label final and treats NLI as context only (`docs/results-summary.md` §3, §4).
 - Close on the working system: a publicly deployed ZeroGPU Space verified end-to-end via its `/analyze` endpoint (**64.4** seconds, REAL at 99.57%, Very stable, NLI Supported) (`docs/results-summary.md` §4).
-- Acknowledge the remaining explanation-faithfulness review and Google Fact Check coverage test as open evaluation work rather than completed contributions (`docs/writeup-facts-w.md` §5; §B.3 above).
+- Report the completed explanation review as **8/10 faithful (80%)**, while noting the row-8 failure that inverted a `supported` NLI verdict to reinforce a fake label; also report the completed Google test as a zero-coverage result whose repeat DDG fallback exposed live-retrieval verdict instability (`evaluation/faithfulness_review.csv`, commit `e529b46`; commit `034f8bf`; §B.3 above).
 
 ---
 
@@ -153,4 +155,4 @@ $$
 - WELFake cleaning/dedup steps and split construction → Methodology (`docs/methodology-facts.md`).
 - TF-IDF/logistic/Dummy baseline hyperparameters → Methodology (`eval_FakeNews.ipynb` via `docs/writeup-facts-w.md` §1).
 - Space SDK/Python versions, input bound, key handling → Implementation/Methodology (`space/README.md`, `app.py` via `docs/writeup-facts-w.md` §4).
-- Explanation prompt internals (seven structured signals, `claude-haiku-4-5`, `max_tokens=220`, `temperature=0`) → Methodology/Implementation (`explain.py` via `docs/writeup-facts-w.md` §3); only the faithfulness *result* belongs in Results once the review exists.
+- Explanation prompt internals (seven structured signals, `claude-haiku-4-5`, `max_tokens=220`, `temperature=0`) → Methodology/Implementation (`explain.py` via `docs/writeup-facts-w.md` §3); the completed faithfulness result belongs in Results (§A.7), with its small-sample caveat in Discussion (§B.4).

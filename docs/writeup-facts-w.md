@@ -1,6 +1,6 @@
 # Write-up Facts: William's Report Sections
 
-This sheet consolidates only values and behaviors backed by committed repository artifacts. Use it for William's report sections on baseline comparison, explanation behavior, and the deployed Space. It is not a substitute for the methodology sheet; it is the reporting-safe fact source.
+This sheet consolidates only values and behaviors backed by committed repository artifacts. Use it for William's report sections on baseline comparison, evidence verification, Google Fact Check coverage, explanation behavior, and the deployed Space. It is not a substitute for the methodology sheet; it is the reporting-safe fact source.
 
 ## Artifact map
 
@@ -9,7 +9,9 @@ This sheet consolidates only values and behaviors backed by committed repository
 | Baseline and classifier comparison | `docs/results-summary.md`; preserved outputs in `eval_FakeNews.ipynb` |
 | MC Dropout calibration and uncertainty | Executed outputs and embedded figures in `eval_MCFakeNews.ipynb`, merged in commit `799f359` |
 | Escalation behavior and counts | `evaluation/escalation_results.csv`; `docs/results-summary.md` |
+| Google Fact Check coverage and fallback comparison | `google factchek/evaluation/google_escalation_results.csv`; `google factchek/evaluation/google_escalation_summary.txt`; commit `034f8bf` |
 | Explanation pipeline | `explain.py`, `pipeline.py`, `app.py`, `eval_faithfulness.ipynb` |
+| Explanation faithfulness review | `evaluation/faithfulness_review.csv`; executed `eval_faithfulness.ipynb`; commit `e529b46` |
 | Deployed Space | `space/README.md`, `app.py`, `requirements.txt`, `docs/results-summary.md` |
 | Shared training/inference definitions | `docs/methodology-facts.md`, `predict.py` |
 
@@ -71,7 +73,7 @@ The four source arrays are now committed under `evaluation/mc_arrays/`: `mean_pr
 
 ## 2. Evidence-verification and escalation numbers
 
-The only committed escalation CSV is `evaluation/escalation_results.csv`. Recomputing from that CSV confirms the figures summarized in `docs/results-summary.md`:
+The original DDG-only escalation results are committed in `evaluation/escalation_results.csv`. Recomputing from that CSV confirms the figures summarized in `docs/results-summary.md`:
 
 | Measure | Exact count | Reported accuracy |
 |---|---:|---:|
@@ -93,9 +95,49 @@ The CSV itself contains 66 true-real and 34 true-fake rows, 62 classifier-real a
 
 This is a negative result for automatic NLI override: accuracy falls by 12 percentage points, from 76.0% to 64.0%. `refuted` is the main failure mode, moving that group from 23/32 correct to 11/32 correct.
 
-## 3. Explanation pipeline behavior
+## 2A. Backed Google Fact Check coverage and fallback comparison
 
-These behaviors are backed by `explain.py`, `pipeline.py`, `app.py`, and `eval_faithfulness.ipynb`:
+Commit `034f8bf` commits the audited fixed-bucket outputs `google factchek/evaluation/google_escalation_results.csv` and `google factchek/evaluation/google_escalation_summary.txt`. The Google-run CSV contains the same 100 row IDs, claims, true labels, classifier labels, and previously committed DDG-only final labels as `evaluation/escalation_results.csv`.
+
+The Google audit establishes:
+
+| Measure | Audited result |
+|---|---:|
+| Frozen-bucket rows | 100 |
+| Google candidate coverage | 0.0% (0/100) |
+| Clean zero-candidate no-match responses | 100/100 |
+| Google request or API-key errors | 0/100 |
+| Usable Google verdicts | 0.0% (0/100) |
+| Google agreement with true labels | Not applicable (0/0) |
+
+Every row has `google_candidate_count = 0` and `google_reason = no Google fact-check match`, while every `google_error` field is empty. The zero coverage is therefore an audited clean no-match result, not an HTTP, request, or API-key failure. With no usable Google verdicts, agreement cannot be calculated and must not be reported as 0%.
+
+The three-way accuracy comparison on the frozen bucket is:
+
+| Decision path | Correct | Accuracy |
+|---|---:|---:|
+| Classifier-only | 76/100 | 76.0% |
+| Committed DDG-only final | 64/100 | 64.0% |
+| Google-first hybrid final | 64/100 | 64.0% |
+
+Because Google returned no candidates, all 100 rows fell through to a new live DDG + DeBERTa pass. Google therefore made no measured contribution to the hybrid result. The two committed DDG passes have identical aggregate accuracy but different verdict distributions:
+
+| Verdict | Original DDG-only pass (`escalation_results.csv`) | Google-run DDG fallback (`google_escalation_results.csv`) |
+|---|---:|---:|
+| Supported | 42 | 30 |
+| Refuted | 32 | 12 |
+| Insufficient | 26 | 58 |
+| **Final correct** | **64/100** | **64/100** |
+
+The shift from **42/32/26** to **30/12/58** supported/refuted/insufficient verdicts is committed evidence of live-retrieval verdict instability, even though aggregate final accuracy remained 64.0% in both passes. It supports treating live retrieval and NLI as contextual evidence rather than a reproducible automatic override.
+
+The Google-run CSV has **58** rows with `source=none`, all with an `insufficient` verdict and `reason = DDG evidence evaluated with DeBERTa NLI`. In this artifact, `source=none` does not mean that no DDG evidence was retrieved: `google factchek/verify.py` assigns that source when retrieved evidence has been evaluated but neither entailment nor contradiction clears the NLI verdict threshold. A genuine no-evidence case would instead record `reason = no DDG evidence retrieved`.
+
+These findings are limited to the frozen 100-row low-confidence WELFake bucket and the query-time API responses recorded in commit `034f8bf`; they do not establish Google Fact Check coverage for other claims, query formulations, datasets, or times.
+
+## 3. Explanation pipeline behavior and faithfulness review
+
+These behaviors and results are backed by `explain.py`, `pipeline.py`, `app.py`, the executed `eval_faithfulness.ipynb`, and `evaluation/faithfulness_review.csv`:
 
 - `pipeline.py` chains classifier inference, **30 MC Dropout passes**, DDG/NLI verification, and the optional explanation call.
 - `explain.py` sends only seven structured signals: classifier label, classifier confidence, MC Dropout uncertainty, NLI verdict, maximum entailment, maximum contradiction, and evidence count.
@@ -104,7 +146,24 @@ These behaviors are backed by `explain.py`, `pipeline.py`, `app.py`, and `eval_f
 - If the NLI verdict conflicts with the label, the prompt requires the explanation to describe the conflict as context and state that it does not change the classifier label.
 - `app.py` keeps the classifier label final and marks NLI evidence as context only.
 - `app.py` accepts an optional per-request Anthropic key, clears the key output on every return path, and returns an explanation-unavailable note without a key while preserving classifier and verification results.
-- `eval_faithfulness.ipynb` creates a manual 10-row review workflow using `np.random.default_rng(42)` and exports `evaluation/faithfulness_review.csv`.
+- The executed `eval_faithfulness.ipynb` applies the manual 10-row review workflow and exports the completed `evaluation/faithfulness_review.csv` committed in `e529b46`.
+
+### Completed 10-row faithfulness result
+
+| Review outcome | Rows | Rate |
+|---|---:|---:|
+| Matches supplied structured signals (`yes`) | 8 | 80% |
+| Does not match supplied structured signals (`no`) | 2 | 20% |
+| **Overall reviewed** | **10** | **100%** |
+
+The two rows marked `no` document distinct failures:
+
+| Source row | Documented failure |
+|---:|---|
+| 8 | The classifier label was fake while the NLI verdict was `supported` with entailment 0.98. The explanation claimed that the evidence aligned with fake, inverting the verdict's direction. |
+| 94 | The explanation attributed the classifier decision to retrieved evidence items that the classifier never saw. |
+
+The reporting-safe result is therefore **8/10 faithful (80%)** under the review's matches-signals criterion. This is a small sample judged by a single reviewer, so it does not establish population-level faithfulness or inter-rater reliability. Scale-up should use more explanations, multiple independent reviewers, a prespecified rubric, and an agreement measure.
 
 ## 4. Deployed Space facts
 
@@ -124,10 +183,9 @@ These behaviors are backed by `explain.py`, `pipeline.py`, `app.py`, and `eval_f
 
 ## 5. Claims that currently lack committed artifact backing
 
-The MC summary results, embedded figures, and four raw `.npy` arrays are now committed artifacts. The remaining reporting boundaries are:
+The MC summary results and arrays, the Google fixed-bucket audit, and the completed 10-row explanation-faithfulness review are now backed by committed artifacts. The remaining reporting boundaries are:
 
-1. **Explanation faithfulness rate or human-evaluation result.** `eval_faithfulness.ipynb` provides the workflow, but no completed `evaluation/faithfulness_review.csv` is committed. `docs/results-summary.md` explicitly states that no explanation-faithfulness or human-evaluation result has been completed.
-2. **Baseline comparison CSV.** Baseline results are preserved in `docs/results-summary.md` and the `eval_FakeNews.ipynb` output, but no dedicated baseline CSV is committed under `evaluation/`. The only committed evaluation CSV is `escalation_results.csv`.
-3. **Permanent output transcript for the deployed Space run.** The verified endpoint result is documented in `docs/results-summary.md`; no separate committed log file stores the full response payload. Report the summary values only.
-4. **Stable live DDG evidence URLs for future runs.** `docs/results-summary.md` warns that DDG search results are live web data and can change between runs.
-5. **Current live Space RUNNING state in repository evidence.** The Space can be observed externally, but the repository does not commit a runtime-status artifact. Use the URL and documented endpoint verification, not a claimed repository-backed runtime state.
+1. **Baseline comparison CSV.** Baseline results are preserved in `docs/results-summary.md` and the `eval_FakeNews.ipynb` output, but no dedicated baseline CSV is committed.
+2. **Permanent output transcript for the deployed Space run.** The verified endpoint result is documented in `docs/results-summary.md`; no separate committed log file stores the full response payload. Report the summary values only.
+3. **Stable live DDG evidence URLs for future runs.** `docs/results-summary.md` warns that DDG search results are live web data and can change between runs.
+4. **Current live Space RUNNING state in repository evidence.** The Space can be observed externally, but the repository does not commit a runtime-status artifact. Use the URL and documented endpoint verification, not a claimed repository-backed runtime state.

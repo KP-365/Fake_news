@@ -103,4 +103,8 @@ future escalation policy with evidence-quality checks and validated score thresh
   `gradio_client` call to the named `/analyze` endpoint on 20 July 2026 completed in 64.4 seconds
   wall-clock and returned REAL at 99.57% confidence, Very stable prediction stability, and an NLI
   verdict of Supported. Runtime includes live DDG retrieval and two ZeroGPU allocations.
-- No explanation-faithfulness or human-evaluation result has been completed.
+- The completed 10-row, single-reviewer explanation-faithfulness review marked 8/10 explanations
+  faithful (80%). The two failures were the row-8 NLI verdict inversion and row 94's attribution of
+  the classifier decision to retrieved evidence that the classifier never saw
+  (`evaluation/faithfulness_review.csv`, commit `e529b46`). Treat this as a small-sample descriptive
+  result rather than a population estimate or multi-reviewer agreement measure.
