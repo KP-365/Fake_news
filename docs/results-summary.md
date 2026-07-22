@@ -108,3 +108,13 @@ future escalation policy with evidence-quality checks and validated score thresh
   the classifier decision to retrieved evidence that the classifier never saw
   (`evaluation/faithfulness_review.csv`, commit `e529b46`). Treat this as a small-sample descriptive
   result rather than a population estimate or multi-reviewer agreement measure.
+
+## 5. Statistical uncertainty
+
+Baseline classifier accuracy was 76.0% (76/100; 95% Wilson CI, 66.8%–83.3%).
+
+Post-override accuracy was 64.0% (64/100; 95% Wilson CI, 54.2%–72.7%).
+
+Overrides fixed 11 errors and broke 23 correct predictions; the two-sided exact McNemar test gave p = 0.057613.
+
+Explanation faithfulness was 80.0% (8/10; 95% Wilson CI, 49.0%–94.3%).
