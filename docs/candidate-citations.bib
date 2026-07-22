@@ -1,0 +1,40 @@
+% Fit: Defines FEVER's staged retrieval-and-verification task, grounding the interpretation that retrieval or entailment errors can propagate when NLI is allowed to override a classifier.
+@inproceedings{thorne-etal-2018-fever,
+  title     = {{FEVER}: a Large-scale Dataset for Fact Extraction and {VERification}},
+  author    = {Thorne, James and Vlachos, Andreas and Christodoulopoulos, Christos and Mittal, Arpit},
+  booktitle = {Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers)},
+  month     = jun,
+  year      = {2018},
+  address   = {New Orleans, Louisiana},
+  publisher = {Association for Computational Linguistics},
+  pages     = {809--819},
+  doi       = {10.18653/v1/N18-1074},
+  url       = {https://aclanthology.org/N18-1074/}
+}
+
+% Fit: Uses separate document retrieval, fact ranking, and multi-sentence ESIM entailment stages, making it directly relevant to explaining harmful overrides as pipeline error propagation.
+@inproceedings{hanselowski-etal-2018-ukp,
+  title     = {{UKP-Athene}: Multi-Sentence Textual Entailment for Claim Verification},
+  author    = {Hanselowski, Andreas and Zhang, Hao and Li, Zile and Sorokin, Daniil and Schiller, Benjamin and Schulz, Claudia and Gurevych, Iryna},
+  booktitle = {Proceedings of the First Workshop on Fact Extraction and {VERification} ({FEVER})},
+  month     = nov,
+  year      = {2018},
+  address   = {Brussels, Belgium},
+  publisher = {Association for Computational Linguistics},
+  pages     = {103--108},
+  doi       = {10.18653/v1/W18-5516},
+  url       = {https://aclanthology.org/W18-5516/}
+}
+
+% Fit: Separates BERT evidence retrieval from three-way claim verification and reports imperfect retrieval recall, supporting caution that NLI overrides depend on upstream evidence quality.
+@inproceedings{soleimani-etal-2020-bert,
+  title     = {{BERT} for Evidence Retrieval and Claim Verification},
+  author    = {Soleimani, Amir and Monz, Christof and Worring, Marcel},
+  booktitle = {Advances in Information Retrieval},
+  year      = {2020},
+  address   = {Cham},
+  publisher = {Springer International Publishing},
+  pages     = {359--366},
+  doi       = {10.1007/978-3-030-45442-5_45},
+  url       = {https://doi.org/10.1007/978-3-030-45442-5_45}
+}
