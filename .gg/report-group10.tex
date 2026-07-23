@@ -137,34 +137,36 @@ enters the explanation agent as supporting context only.
 \begin{figure*}[t]
   \centering
   \begin{tikzpicture}[
-    >=Latex,
+    node distance=8mm and 12mm,
     block/.style={draw, rounded corners, align=center, minimum height=8mm,
-                  minimum width=23mm, font=\small},
-    signal/.style={draw, rounded corners, align=center, minimum height=7mm,
+                  minimum width=20mm, font=\small},
+    signal/.style={draw, rounded corners, align=center, minimum height=8mm,
                    minimum width=20mm, font=\small},
-    every edge/.style={draw, -{Latex}, thick}
+    flow/.style={draw, -{Latex}, thick, rounded corners=4pt}
   ]
     \node[block] (article) at (0,0) {Article};
-    \node[block] (classifier) at (3.0,1.4) {RoBERTa--LoRA\\classifier};
-    \node[signal] (label) at (6.1,2.0) {Deterministic\\label};
-    \node[block] (mc) at (6.1,0.8) {MC Dropout\\side branch\\30 passes};
-    \node[signal] (stability) at (8.8,0.8) {Stability\\signal};
-    \node[block] (retrieval) at (3.0,-1.4) {DDG retrieval\\top-$5$ snippets};
-    \node[block] (nli) at (6.1,-1.4) {DeBERTa NLI};
-    \node[signal] (verdict) at (8.8,-1.4) {Verdict};
-    \node[block] (explanation) at (12.0,0) {Explanation\\agent};
+    \node[block] (classifier) at (3.8,2.2) {RoBERTa--LoRA\\classifier};
+    \node[signal] (label) at (7.6,2.2) {Deterministic\\label};
+    \node[block] (mc) at (3.8,0) {MC Dropout\\(30 passes)};
+    \node[signal] (stability) at (7.6,0) {Stability\\signal};
+    \node[block] (retrieval) at (3.8,-2.2) {DDG retrieval\\(top-$5$)};
+    \node[block] (nli) at (7.6,-2.2) {DeBERTa NLI};
+    \node[signal] (verdict) at (11.0,-2.2) {Verdict};
+    \node[block] (explanation) at (14.8,0) {Explanation\\agent};
 
-    \path (article) edge (classifier);
-    \path (article) edge (retrieval);
-    \path (classifier) edge (label);
-    \path (classifier) edge (mc);
-    \path (mc) edge (stability);
-    \path (retrieval) edge (nli);
-    \path (nli) edge (verdict);
-    \path (label) edge (explanation);
-    \path (stability) edge (explanation);
-    \path (verdict) edge node[midway, above, align=center, fill=white,
-      inner sep=1pt, font=\scriptsize] {supporting\\context only} (explanation);
+    \draw[flow] (article.north) |- (classifier.west);
+    \draw[flow] (article.south) |- (retrieval.west);
+    \draw[flow] (classifier.east) -- (label.west);
+    \draw[flow] (classifier.south) -- (mc.north);
+    \draw[flow] (mc.east) -- (stability.west);
+    \draw[flow] (retrieval.east) -- (nli.west);
+    \draw[flow] (nli.east) -- (verdict.west);
+    \draw[flow] (label.east) -| (explanation.north);
+    \draw[flow] (stability.east) -- (explanation.west);
+    \draw[flow] (verdict.east) -|
+      node[pos=0.42, above=3pt, align=center, fill=white, inner sep=2pt,
+           font=\scriptsize] {supporting\\context only}
+      (explanation.south);
   \end{tikzpicture}
   \caption{Deployed three-layer pipeline. Classification and verification run in
   parallel for every article. MC Dropout supplies stability beside the fixed
