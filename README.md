@@ -205,7 +205,7 @@ eval_MCFakeNews.ipynb                       MC Dropout/calibration evaluation
 eval_escalation.ipynb                       Colab runner for escalation evaluation
 evaluation/eval_escalation.py               low-confidence bucket and NLI escalation
 models/roberta-trained-welfake/              tracked adapter, classifier head, tokenizer
-docs/project_proposal.docx                  original project proposal
+docs/                                      citations, research notes, results summaries, and report drafts
 requirements.txt                            Python dependencies
 TASKS.md                                    implementation-status checklist
 ```
