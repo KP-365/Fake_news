@@ -1,4 +1,4 @@
-"""Compute report statistics from the committed evaluation CSV files."""
+"""Compute report statistics from committed evaluation artifacts."""
 
 from __future__ import annotations
 
@@ -8,9 +8,15 @@ from fractions import Fraction
 from pathlib import Path
 from statistics import NormalDist
 
+import numpy as np
+
 EVALUATION_DIR = Path(__file__).resolve().parent
 ESCALATION_PATH = EVALUATION_DIR / "escalation_results.csv"
 FAITHFULNESS_PATH = EVALUATION_DIR / "faithfulness_review.csv"
+MC_ARRAYS_DIR = EVALUATION_DIR / "mc_arrays"
+PREDICTIVE_ENTROPY_PATH = MC_ARRAYS_DIR / "predictive_entropy.npy"
+MEAN_PROBABILITIES_PATH = MC_ARRAYS_DIR / "mean_probabilities.npy"
+TRUE_LABELS_PATH = MC_ARRAYS_DIR / "true_labels.npy"
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -58,6 +64,45 @@ def exact_mcnemar_p_value(fixed: int, broken: int) -> Fraction:
 def percent(value: float) -> str:
     """Format a proportion as a percentage with one decimal place."""
     return f"{100 * value:.1f}%"
+
+
+def rejection_curve_point(deferred_count: int) -> tuple[int, int, int]:
+    """Return total retained, total correct retained, and total test articles."""
+    predictive_entropy = np.load(PREDICTIVE_ENTROPY_PATH, allow_pickle=False)
+    mean_probabilities = np.load(MEAN_PROBABILITIES_PATH, allow_pickle=False)
+    true_labels = np.load(TRUE_LABELS_PATH, allow_pickle=False)
+
+    if predictive_entropy.ndim != 1 or true_labels.ndim != 1:
+        raise ValueError("Predictive entropy and true labels must be one-dimensional")
+    if mean_probabilities.ndim != 2 or mean_probabilities.shape[1] < 2:
+        raise ValueError(
+            "Mean probabilities must have one row per article and at least two classes"
+        )
+
+    total_count = true_labels.size
+    if (
+        predictive_entropy.size != total_count
+        or mean_probabilities.shape[0] != total_count
+    ):
+        raise ValueError("MC arrays must contain the same number of articles")
+    if not 0 < deferred_count < total_count:
+        raise ValueError(
+            "Deferred count must be greater than zero and smaller than the test set"
+        )
+    if (
+        not np.isfinite(predictive_entropy).all()
+        or not np.isfinite(mean_probabilities).all()
+        or not np.isfinite(true_labels).all()
+    ):
+        raise ValueError("MC arrays contain non-finite values")
+
+    retained_count = total_count - deferred_count
+    retained_indices = np.argsort(predictive_entropy)[:retained_count]
+    retained_predictions = mean_probabilities[retained_indices].argmax(axis=1)
+    retained_correct = np.count_nonzero(
+        retained_predictions == true_labels[retained_indices]
+    )
+    return retained_count, int(retained_correct), total_count
 
 
 def main() -> None:
@@ -123,6 +168,16 @@ def main() -> None:
         f"Explanation faithfulness was {percent(faithful / faithfulness_total)} "
         f"({faithful}/{faithfulness_total}; 95% Wilson CI, "
         f"{percent(faithfulness_ci[0])}–{percent(faithfulness_ci[1])})."
+    )
+
+    deferred_count = 100
+    retained_count, retained_correct, test_count = rejection_curve_point(deferred_count)
+    print(
+        f"After deferring the {deferred_count} highest-entropy articles, "
+        f"{retained_count:,}/{test_count:,} were retained "
+        f"({retained_count / test_count:.2%} coverage) with "
+        f"{retained_correct:,}/{retained_count:,} correct "
+        f"({retained_correct / retained_count:.2%} retained accuracy)."
     )
 
 
