@@ -1,0 +1,47 @@
+Feedback:
+
+Overall, the project proposal is well-organised and using real-world examples
+(inﬂuencing voting, reducing trust in institutions, and a;ecting health decision) of
+misinformation impact was good to justify the motivation. The proposed 3-layer
+framework combining BERT-LoRA classiﬁcation, Google Fact Check API veriﬁcation, and
+explainable AI is an appropriate approach. The use of BERT with LoRA ﬁne-tuning is
+appropriate for e;icient transformer adaptation. The datasets selected (LIAR and
+WELFake) are suitable for fake news detection research. The evaluation metrics (macro-
+F1, precision, recall, confusion matrix, and calibration metrics) are appropriate for
+assessing classiﬁcation performance.
+
+Suggestions for the ﬁnal report:
+
+   •   It wasn’t very clear to me as to how the 3 layers will interact with each other (BERT-
+       LoRA classiﬁcation, Google Fact Check API veriﬁcation, and explainable AI).
+       Whether these layers are working independently, sequentially, or as an integrated
+       hybrid framework.
+   •   In ﬁnal report, add more detail about how conﬂicts between the classiﬁer
+       prediction and external fact-checking results will be resolved. The explanation
+       layer also requires further clariﬁcation, as it is unclear whether the natural
+       language explanation agent will be based on a LLM, predeﬁned templates, or a
+       rule-based approach.
+   •   The dataset selection is appropriate; however, further justiﬁcation is required
+       regarding the di;erences between LIAR and WELFake. LIAR contains short
+       political claims, while WELFake contains longer news articles, and it is unclear
+       how the proposed approach will handle these di;erences. The binary label
+       conversion strategy for the LIAR dataset should also be explained in more detail,
+       as categories such as “barely true” and “half true” may introduce ambiguity when
+       converted into real and fake classes.
+
+   •   Add details about dataset splitting (training/validation/testing), preprocessing
+       steps, and how class imbalance will be handled.
+
+   •   Explain why BERT with LoRA was selected over other transformer-based models
+       or parameter-e;icient ﬁne-tuning approaches.
+
+   •   In the ﬁnal report, discuss previous fake news detection approaches and their
+       limitations, particularly methods based only on text classiﬁcation without
+       veriﬁcation or uncertainty estimation.
+
+   •   Include a clear architecture diagram/ﬂowchart showing the interaction between
+       the three layers: BERT-LoRA classiﬁcation, fact-check retrieval, uncertainty
+       estimation, and explanation generation.
+•   Include baseline comparisons, such as BERT without LoRA versus BERT-LoRA,
+    and classiﬁer-only versus the complete three-layer framework, to demonstrate
+    the contribution of each component.

@@ -1,0 +1,421 @@
+ECS7036 – Coursework 1 (Group Project)
+
+
+
+
+           ECS7036 – Applications of AI
+               Coursework 1 – Group Project
+
+Grading Overview
+
+The final grade will be computed using the following weighted grading scheme:
+
+   •   40% Group Project:
+          o   5% Project proposal – 26th June
+          o   15% Project presentation + Viva Q&A [Individual Score] – 24th July
+          o   10% Project report – 21st July
+          o   10% Project Implementation – 21st July
+
+
+   •   60% Individual Project:
+          o   5% Project proposal – 28th July
+          o   20% Project presentation + Viva Q&A – 14th August
+          o   15% Project report – 10th August
+          o   20% Project Implementation – 10th August
+
+The final grade will be based on the total score accumulated in the course:
+
+         Grade                Mark Range Required
+        Grade A                   70.0 - 100.0
+        Grade B                      60.0 - 69.9
+        Grade C                      50.0 - 59.9
+        Grade D                      45.0 - 49.9
+        Grade E                      40.0 - 44.9
+          Fail                       0.0 - 39.9
+ECS7036 – Coursework 1 (Group Project)
+
+
+
+Group Project
+Overview
+The class project has three key objectives. First, it provides an opportunity to apply
+the concepts and techniques covered in the module in a creative and practical context
+(specific to your field of interest), supporting a deeper understanding of the material.
+Second, it offers experience in designing and developing a unique project as part of a
+team which is an essential skill that students are likely to encounter throughout their
+academic and professional careers. Working collaboratively on a project also helps
+develop communication, problem-solving, and project management skills. Third,
+beyond the practical experience and creative satisfaction it offers, the project can
+serve as a valuable addition to a student’s portfolio or résumé. Students may choose
+to showcase their work publicly, for example through a GitHub repository or personal
+website (optional)
+
+Note about grading
+
+There is no such thing as a “perfect project.” While you are encouraged to be
+ambitious, the primary goal of this coursework is to support your learning experience.
+You should avoid choosing a project that is too simple, but equally, you should not
+select one that is clearly beyond the scope of the module or your current level of
+expertise.
+
+Keep in mind that more comprehensive and engaging projects often make it easier to
+write a comprehensive 6 to 8 pages project report. However, the project proposal will
+not be assessed based on how ambitious or exciting the project idea is. Instead,
+evaluation will focus on how effectively you meet the objectives of the project proposal,
+presentation, and final report.
+
+Importantly, an unsuccessful outcome will not negatively impact your grade, provided
+that you demonstrate honest reflection and critical analysis. For example, if you
+choose to develop a classifier that does not achieve the desired accuracy, you will not
+be penalised as long as you clearly explain the challenges encountered, analyse
+possible reasons for the outcome, and propose meaningful improvements or future
+experiments.
+
+Ultimately, the objective of this coursework is to provide hands-on experience with AI
+concepts and techniques while giving you the opportunity to learn through practical
+application.
+
+The project consists of four main components:
+
+   1. Project proposal
+   2. Short project presentation
+   3. Project report
+ECS7036 – Coursework 1 (Group Project)
+
+
+   4. Project Implementation
+
+The expectations and requirements for each component are outlined in the following
+sections.
+
+
+1) Project Proposal
+Please note that you are required to use the proposal LaTeX file(s) when writing
+and submitting your project proposal.
+
+The main aim of the project proposal is to receive feedback from the instructor
+regarding the feasibility of your project and whether it falls within the scope of this
+course. In addition, the proposal provides an opportunity to obtain constructive
+feedback and suggestions that may help strengthen your project.
+
+For this project, you will work in teams of three or four students (Menti voting was
+50:50). You are encouraged to form your own groups, as per your menti voting results.
+If you are unable to find group members, the instructor will assign groups randomly. If
+you experience concerns about working with someone in your group, please speak
+with the instructor or the Demonstrator to discuss possible accommodations
+
+Proposal Format:
+
+   •   The project proposal should be 1–3 pages in length (800–1200 words),
+       excluding references.
+   •   You are required to use the LaTeX proposal template. This requirement serves
+       two purposes:
+          o   LaTeX is widely used in statistics, machine learning, and academic
+              research, making it a valuable skill for your future work
+          o   A standardized format ensures consistency across submissions, making
+              grading more efficient and fairer.
+       The proposal template is available in the proposal-latex files.
+   •   You are encouraged, but not required, to include 1–2 figures to help illustrate
+       technical concepts
+   •   The proposal must be formatted and submitted as a PDF document. The
+       submission deadline will be announced later through the course calendar and
+       email
+
+Introduction:
+
+   •   Describe the project you plan to do
+   •   Briefly discuss related research work, if applicable.
+ECS7036 – Coursework 1 (Group Project)
+
+
+Motivation:
+
+   •   Explain why your project is interesting or important. For example, you may
+       discuss its broader societal impact or your personal learning goals and
+       interests.
+
+Evaluation:
+
+   •   Describe what a successful outcome of your project would look like. In other
+       words, under what conditions would you consider your project successful?
+   •   Explain how success will be measured from a technical perspective, specifically
+       for your project.
+
+Resources:
+
+   •   Describe the resources you plan to use, such as datasets (include URL),
+       programming language, computational tools, software libraries, computer
+       hardware, or other relevant materials
+
+References:
+
+   •   Include atleast 3 relevant published research work and include the references
+
+Contributions:
+
+All group members are expected to contribute equally to both the experimental and
+writing components of the project. Although only one proposal and one final report will
+be submitted per group, collaboration and coordination are essential.
+
+Clearly specify the computational and writing responsibilities of each group
+member.
+
+Regular communication within your group is essential. You are strongly encouraged
+to schedule consistent meetings and/or use communication platforms (e.g., Teams or
+email) to stay connected throughout the semester and ensure steady progress on your
+project.
+
+Project Proposal Modification
+
+After receiving feedback and your proposal grade, you are encouraged to follow your
+original project outline as closely as possible. However, adjustments may be
+appropriate if later course material introduces methods or concepts that better suit
+your project (e.g., a more suitable AI model than the one originally proposed).
+
+You are welcome to revise your proposal accordingly, though you will not be penalized
+for keeping the original plan. If you would like to modify your project outline, please
+consult the instructor or a Demonstrator first.
+ECS7036 – Coursework 1 (Group Project)
+
+
+Project Proposal Assessment
+
+The proposal will be evaluated based on the completeness of the following five
+sections:
+
+   1. Introduction          [10 marks]
+   2. Motivation            [10 marks]
+   3. Evaluation            [10 marks]
+   4. Resources             [5 marks]
+   5. References            [5 marks]
+   6. Contributions         [10 marks]
+
+
+Project proposal will be graded out of 50 marks overall. Grading will focus on
+completeness rather than writing style, language quality, or how “interesting” or
+“exciting” the project appears.
+
+
+It is also essential to properly acknowledge prior work and use citations appropriately
+when referencing the work of others. Even minor forms of plagiarism (e.g., copying
+sentences from other sources without proper attribution) will result in a deduction of at
+least 10 points per incident. University policy also requires severe cases of
+academic misconduct to be formally reported.
+
+
+NOTE: Use of any GenAI tool is prohibited for documentation of project proposal.
+
+
+If you are unsure about what constitutes plagiarism or how to avoid it, please consult
+the academic integrity resources available through QMUL Academic Misconduct
+
+
+2) Project Presentation
+During the second-last lecture of the module (24th July). Each group will present their
+project to the class. The presentation format is flexible (“free form”), but it should
+address the following key components:
+
+   •   Introduce the topic to a general audience (i.e., your classmates).
+   •   Summarize the main methodology or approach used in the project.
+   •   Highlight and discuss the key outcomes and findings of the project.
+
+15% Project presentation + Viva Q&A [Individual Score] – 24th July
+
+Each presentation should be 15 or 20 minutes long depending on the number of
+students in the group, followed by 5 minutes for questions and discussion. All group
+members are expected to participate in the presentation
+ECS7036 – Coursework 1 (Group Project)
+
+
+Project Presentation Assessment
+
+The Project Presentation and Viva (Q&A session) accounts for 15% out of
+the total 40% of the group project and will take place on 24th July.
+
+Please note that while the presentation is delivered as a group, the
+Presentation as well as the Viva will be assessed individually. This means
+each student will receive an individual score based on their contribution to
+the presentation and their ability to answer questions about the project during
+the viva discussion.
+
+Project Presentation Logistics
+
+
+   • To encourage attendance and ensure fairness, the order of
+     presentations will be determined randomly in class using a random
+     number generator.
+
+   • Presentation slides must be uploaded to QM+ at least one day before
+     your scheduled presentation.
+
+   • Please bring your own device for the presentation. The ITL Building
+     classroom is equipped with USB-C and HDMI connections for the
+     projector. However, you are strongly encouraged to visit the room in
+     advance (ideally one week before your presentation) to test your setup
+     and confirm that everything functions properly.
+
+Project Presentation Assessment
+
+The presentation will be graded out of 100 points according to the following rubric:
+
+
+   a) 10 marks – Is the motivation for the project clearly explained?
+   b) 40 marks – Is the project described clearly enough for a general audience with
+      a background in AI to understand?
+   c) 20 marks – Are figures and graphs clear, legible, and effectively explained?
+   d) 20 marks – Are the results presented and discussed adequately?
+   e) 10 points – Did all group members contribute meaningfully to the presentation?
+
+
+In addition to the presentation itself, students should be prepared to answer questions
+during the Viva Q&A, demonstrating their understanding of the project, methodology,
+results, and their individual contributions.
+ECS7036 – Coursework 1 (Group Project)
+
+
+3) Project Report
+The project report is expected to be 6 to 8 pages in length (excluding references) and
+should include the following sections:
+   1. Introduction
+   2. Related Work
+   3. Proposed Methodology
+   4. Implementation
+   5. Results and Discussion
+   6. Conclusions
+   7. Individual Contributions
+
+Additional guidance and formatting instructions are provided in the LaTeX report
+template available in report-template.
+
+Please note that you are required to use the report LaTeX file(s) when writing and
+submitting your report.
+
+In addition to the report, you must submit all code, computations, and experimental
+materials developed and used throughout the project. These materials are required to
+verify the originality and reproducibility of your work.
+
+Please note that code quality will not directly affect your grade. The submitted code
+will primarily serve to confirm that the results presented in the report are original,
+reproducible, and based on actual experimentation.
+
+
+Project Report Assessment
+
+The project report will be assessed according to the following rubric:
+
+Abstract (Maximum 250 words):            [5 marks]
+
+   •   Does the abstract provide sufficient information to give the reader a clear
+       understanding of the project?
+   •   Does the abstract effectively summarize the key findings?
+   •   Are the main points of the report described clearly and concisely?
+
+Introduction:        [10 marks]
+
+   •   Does the introduction provide sufficient background information to understand
+       the project?
+ECS7036 – Coursework 1 (Group Project)
+
+
+   •   Is the introduction well organized, progressing from a broad overview to a more
+       specific discussion?
+   •   Is there a clear motivation explaining why the project is relevant, important, or
+       interesting?
+
+Related Work:        [10 marks]
+
+   •   Is prior and related work discussed adequately?
+   •   Are references cited appropriately and consistently (both in this section and
+       throughout the report)?
+   •   Is there sufficient discussion comparing your work with existing approaches or
+       previous research?
+
+Proposed Methodology:              [20 marks]
+
+   •   Are all symbols and mathematical notations clearly defined (where applicable)?
+   •   Are the algorithms, models, or methods described clearly enough that a
+       knowledgeable reader could reproduce or implement them?
+
+Implementation:             [20 marks]
+
+   •   Is the methodology described clearly enough to allow replication?
+   •   If datasets are used, are they properly described and referenced?
+   •   Is the provided implementation details consistent with the provide code?
+
+Results and Discussion:            [20 marks]
+
+   •   Are the results presented clearly and interpreted appropriately?
+   •   Is the analysis logical, thorough, and supported by evidence?
+   •   Are figures clear, readable, and fully labelled?
+   •   Do figure captions provide enough detail to understand the figures
+       independently?
+   •   Is each figure properly referenced and discussed within the text?
+   •   Does the discussion critically evaluate the results, including limitations,
+       weaknesses, or potential shortcomings?
+
+Conclusions:                [10 marks]
+
+   •   Do the authors clearly discuss whether the original goals or motivations of the
+       project were achieved?
+   •   Is there adequate discussion of how the findings relate to prior work?
+ECS7036 – Coursework 1 (Group Project)
+
+
+   •   Where appropriate, are meaningful future directions or extensions suggested?
+
+Contributions:              [5 marks]
+
+   •   Are each team member’s contributions clearly described?
+   •   Did all group members contribute approximately equally to the project?
+
+
+Optional: Public Project
+If you would like to share your project/final project report online, you can do so after
+you completed the module. For example, you can publish the project code and report
+on GitHub or on a personal website as part of your academic portfolio.
+
+Examples of projects from previous Machine Learning (non-deep learning) courses
+include:
+
+   •   Forecasting Stock Returns using Supervised Learning
+   •   Counting Strokes in Chinese Characters
+
+
+Other Information
+
+Late Submission Policy
+
+Late submissions for coursework project will be penalized as follows:
+   •   Submitted within 24 hours of the deadline: 10% deduction from the maximum
+       possible score.
+   •   Submitted within 48 hours of the deadline: 20% deduction from the maximum
+       possible score.
+   •   Submitted more than 48 hours after the deadline: No credit will be awarded
+
+
+Academic Integrity
+
+By enrolling in this course, students become members of the QMUL scholarly
+community and are expected to uphold the highest standards of academic integrity in
+both their work and conduct.
+
+Academic misconduct undermines the integrity of the university. Examples include,
+but are not limited to:
+ECS7036 – Coursework 1 (Group Project)
+
+
+   •   Cheating
+   •   Fabrication or falsification of results
+   •   Plagiarism
+   •   Unauthorized collaboration
+   •   Assisting others in committing academic misconduct
+
+Violations may result in disciplinary action, including grade penalties, failure of the
+assignment or course, disciplinary probation, or suspension. Serious or repeated
+cases of misconduct will be referred to the Academic Misconduct Office for further
+review.
+
+For more information, refer to QMUL Academic Misconduct
+
+Students are expected to ensure that all submitted work is their own and that all
+external sources are appropriately acknowledged through proper citation.
