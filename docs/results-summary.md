@@ -2,7 +2,8 @@
 
 This page consolidates the quantitative results currently preserved in the repository. It is
 intended as a factual source for the report write-up. Values come from the committed outputs of
-`eval_FakeNews.ipynb` and the 100 rows in `evaluation/escalation_results.csv`.
+`eval_FakeNews.ipynb` and `eval_MCFakeNews.ipynb`, the arrays in `evaluation/mc_arrays/`, and the
+evaluation CSV files.
 
 ## 1. Held-out WELFake classifier evaluation
 
@@ -48,14 +49,18 @@ included as a lower-bound comparison.
 
 ## 2. MC Dropout calibration and uncertainty
 
-`eval_MCFakeNews.ipynb` contains the implemented 30-pass MC Dropout evaluation, predictive
+`eval_MCFakeNews.ipynb` contains the executed 30-pass MC Dropout evaluation, predictive
 entropy and mutual-information diagnostics, a rejection curve, a 15-bin reliability diagram,
 and ECE calculations for MC-averaged and deterministic confidence.
 
-The committed notebook does **not** contain executed outputs for the MC inference, calibration,
-or ECE cells. Consequently, there is no numerical MC Dropout ECE, deterministic ECE, entropy,
-or accuracy-versus-coverage result available to quote. Reporting a calibration number before
-that notebook is fully executed and its outputs are committed would be inventing a result.
+MC-averaged predictions reached 0.9967 accuracy and 0.9967 macro F1, compared with 0.9957
+accuracy and 0.9957 macro F1 under deterministic inference. MC Dropout ECE was 0.0055, while
+deterministic ECE was 0.0028, so MC averaging did not improve calibration.
+
+Mean predictive entropy was 0.0333 for correct MC predictions and 0.4816 for incorrect
+predictions. Deferring the 100 highest-entropy articles retained 9,298 of 9,398 articles
+(98.94% coverage), of which 9,287 were correct (99.88% retained accuracy). These values are
+reproducible from the committed arrays in `evaluation/mc_arrays/`.
 
 ## 3. NLI escalation on the 100 lowest-confidence articles
 
@@ -98,7 +103,8 @@ future escalation policy with evidence-quality checks and validated score thresh
   cross-dataset test.
 - The escalation experiment covers the 100 least-confident test articles, not the full 9,398.
 - DDG search results are live web data and can change between runs.
-- No numerical calibration result is currently preserved in the MC Dropout notebook outputs.
+- Numerical MC Dropout and calibration results are preserved in the executed notebook outputs and
+  the arrays in `evaluation/mc_arrays/`.
 - The live ZeroGPU Space is available at https://wf1212-fake-news-detector.hf.space. A verified
   `gradio_client` call to the named `/analyze` endpoint on 20 July 2026 completed in 64.4 seconds
   wall-clock and returned REAL at 99.57% confidence, Very stable prediction stability, and an NLI
