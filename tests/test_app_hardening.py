@@ -57,22 +57,32 @@ class AppHardeningTests(unittest.TestCase):
         self.assertIn("truncated to the first 5,000 characters", outputs[0])
         self.assert_key_cleared(outputs)
 
-    def test_clears_key_for_validation_and_classifier_exceptions(self) -> None:
+    def test_clears_key_and_logs_classifier_failure_without_request_data(self) -> None:
         validation_outputs = app.analyze_article("   ", self.api_key)
         self.assertIn("Enter a headline or article", validation_outputs[0])
         self.assert_key_cleared(validation_outputs)
 
-        with patch.object(
-            app,
-            "classify_with_uncertainty",
-            side_effect=RuntimeError(f"failure included {self.api_key}"),
+        article = "private-classifier-article-7f6d"
+        with (
+            patch.object(
+                app,
+                "classify_with_uncertainty",
+                side_effect=RuntimeError(f"failure included {article} {self.api_key}"),
+            ),
+            self.assertLogs(app.LOGGER, level="ERROR") as captured_logs,
         ):
-            exception_outputs = app.analyze_article("article", self.api_key)
+            exception_outputs = app.analyze_article(article, self.api_key)
 
+        logs = "\n".join(captured_logs.output)
+        self.assertIn("Article analysis failed (RuntimeError)", logs)
+        self.assertNotIn(article, logs)
+        self.assertNotIn(self.api_key, logs)
+        self.assertNotIn(article, "".join(exception_outputs))
         self.assertIn("could not be completed", exception_outputs[0])
         self.assert_key_cleared(exception_outputs)
 
-    def test_clears_key_for_retrieval_and_rejected_key_paths(self) -> None:
+    def test_retrieval_failure_is_private_and_keeps_the_classifier_result(self) -> None:
+        article = "private-retrieval-article-2a91"
         with (
             patch.object(
                 app,
@@ -82,18 +92,81 @@ class AppHardeningTests(unittest.TestCase):
             patch.object(
                 app,
                 "verify_claim",
-                side_effect=RuntimeError(f"retrieval included {self.api_key}"),
+                side_effect=RuntimeError(f"retrieval included {article} {self.api_key}"),
             ),
             patch.object(
                 app,
                 "explain_decision",
                 side_effect=app.AnthropicKeyRejectedError("key rejected"),
             ),
+            self.assertLogs(app.LOGGER, level="ERROR") as captured_logs,
         ):
-            outputs = app.analyze_article("article", self.api_key)
+            outputs = app.analyze_article(article, self.api_key)
 
+        logs = "\n".join(captured_logs.output)
+        self.assertIn("Verification failed (RuntimeError)", logs)
+        self.assertNotIn(article, logs)
+        self.assertNotIn(self.api_key, logs)
+        self.assertNotIn(article, "".join(outputs))
+        self.assertIn("Final classifier label", outputs[0])
+        self.assertIn("Verification was unavailable for this request", outputs[1])
         self.assertIn(app.REJECTED_KEY_MESSAGE, outputs[2])
         self.assert_key_cleared(outputs)
+
+    def test_optional_explanation_failure_keeps_core_analysis(self) -> None:
+        article = "private-explanation-article-93bc"
+        with (
+            patch.object(
+                app,
+                "classify_with_uncertainty",
+                return_value=("real", 0.9, 0.02),
+            ),
+            patch.object(app, "verify_claim", return_value=self.verification_result()),
+            patch.object(
+                app,
+                "explain_decision",
+                side_effect=ValueError(f"provider failed for {article} {self.api_key}"),
+            ),
+            self.assertLogs(app.LOGGER, level="ERROR") as captured_logs,
+        ):
+            outputs = app.analyze_article(article, self.api_key)
+
+        logs = "\n".join(captured_logs.output)
+        self.assertIn("Claude explanation failed (ValueError)", logs)
+        self.assertNotIn(article, logs)
+        self.assertNotIn(self.api_key, logs)
+        self.assertNotIn(article, "".join(outputs))
+        self.assertIn("Final classifier label", outputs[0])
+        self.assertIn("Claude service could not complete", outputs[2])
+        self.assert_key_cleared(outputs)
+
+    def test_malformed_evidence_url_does_not_abort_analysis(self) -> None:
+        verification = self.verification_result()
+        verification["evidence"] = [
+            {
+                "title": "Retrieved source",
+                "snippet": "A short supporting excerpt.",
+                "url": "https://[malformed",
+                "nli": {"entailment": 0.8, "contradiction": 0.1},
+            }
+        ]
+        with (
+            patch.object(
+                app,
+                "classify_with_uncertainty",
+                return_value=("real", 0.9, 0.02),
+            ),
+            patch.object(app, "verify_claim", return_value=verification),
+            patch.object(app, "explain_decision", return_value="Structured explanation."),
+        ):
+            outputs = app.analyze_article(
+                "City officials approved a transit budget after a public hearing.", ""
+            )
+
+        self.assertIn("Final classifier label", outputs[0])
+        self.assertIn("<strong>Retrieved source</strong>", outputs[1])
+        self.assertNotIn("https://[malformed", outputs[1])
+        self.assertEqual(outputs[3], "")
 
 
 if __name__ == "__main__":

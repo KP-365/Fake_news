@@ -1,22 +1,33 @@
 """Evidence-based verification tier: retrieve evidence and run an NLI check.
 
-This module is intended for articles gated as low-confidence by MC Dropout. It uses
+This module verifies every article independently of classifier confidence. It uses
 a pretrained NLI model zero-shot; no verifier weights are trained in this project.
 """
 
 from __future__ import annotations
 
+import logging
 import multiprocessing
 from functools import lru_cache
 from multiprocessing.connection import Connection
 
 import spaces
 
+LOGGER = logging.getLogger(__name__)
+
 # FEVER-trained NLI model (good for claim verification). Zero-shot.
 NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 DEFAULT_TOP_K = 5
 DEFAULT_VERDICT_THRESHOLD = 0.6  # gamma in the methodology
 DDG_HARD_TIMEOUT_SECONDS = 15
+
+
+def _error_type_name(error: Exception) -> str:
+    """Return a bounded exception type without its potentially sensitive message."""
+    error_type = type(error).__name__
+    if not error_type.replace("_", "").isalnum():
+        return "Exception"
+    return error_type[:80]
 
 
 @lru_cache(maxsize=1)
@@ -66,7 +77,7 @@ def _ddg_search_worker(query: str, k: int, sender: Connection) -> None:
             hits = list(ddgs.text(query, max_results=k))
         sender.send({"hits": hits})
     except Exception as error:
-        sender.send({"error": f"{type(error).__name__}: {error}"})
+        sender.send({"error_type": _error_type_name(error)})
     finally:
         sender.close()
 
@@ -94,8 +105,10 @@ def _search_ddg_with_hard_timeout(query: str, k: int) -> list[dict]:
             process.terminate()
             process.join()
 
-    if "error" in message:
-        raise RuntimeError(message["error"])
+    if "error_type" in message:
+        raise RuntimeError(
+            f"DDG retrieval worker failed ({message['error_type']})"
+        )
     return message["hits"]
 
 
@@ -112,7 +125,9 @@ def retrieve_evidence(claim: str, k: int = DEFAULT_TOP_K) -> list[dict]:
     try:
         hits = _search_ddg_with_hard_timeout(query, k)
     except Exception as error:
-        print(f"Evidence retrieval failed: {error}", flush=True)
+        LOGGER.warning(
+            "Evidence retrieval failed (%s)", _error_type_name(error)
+        )
         hits = []
 
     evidence = []

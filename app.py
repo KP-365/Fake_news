@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import html
+import logging
 from multiprocessing import current_process
+from pathlib import Path
 from threading import Lock
 from typing import Any
 from urllib.parse import urlparse
@@ -29,10 +31,30 @@ REJECTED_KEY_MESSAGE = (
     "Explanation unavailable: key rejected. Check the Anthropic API key and try again."
 )
 
+LOGGER = logging.getLogger(__name__)
+
 CLASSIFIER_MODEL: Any | None = None
 CLASSIFIER_TOKENIZER: Any | None = None
 CLASSIFIER_DEVICE: Any | None = None
 CLASSIFIER_LOCK = Lock()
+
+
+def _log_server_exception(stage: str, error: Exception) -> None:
+    """Log diagnostic frames without exception messages or request data."""
+    locations: list[str] = []
+    traceback = error.__traceback__
+    while traceback is not None:
+        code = traceback.tb_frame.f_code
+        locations.append(
+            f"{Path(code.co_filename).name}:{traceback.tb_lineno} in {code.co_name}"
+        )
+        traceback = traceback.tb_next
+
+    error_type = type(error).__name__
+    if not error_type.replace("_", "").isalnum():
+        error_type = "Exception"
+    location_summary = " -> ".join(locations[-8:]) or "traceback unavailable"
+    LOGGER.error("%s failed (%s); %s", stage, error_type, location_summary)
 
 
 def initialize_classifier() -> None:
@@ -43,10 +65,13 @@ def initialize_classifier() -> None:
 
 
 def _safe_evidence_url(url: object) -> str | None:
-    """Return only HTTP(S) evidence URLs."""
+    """Return only valid HTTP(S) evidence URLs."""
     if not isinstance(url, str):
         return None
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return None
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
     return html.escape(url, quote=True)
@@ -160,8 +185,9 @@ def _run_analysis(
     try:
         verification = verify_claim(article_text)
     except Exception as error:
+        _log_server_exception("Verification", error)
         verification = {"verdict": "insufficient", "evidence": []}
-        retrieval_note = f"Verification was unavailable: {error}"
+        retrieval_note = "Verification was unavailable for this request."
 
     verdict = str(verification.get("verdict", "insufficient"))
     if verdict not in {"supported", "refuted", "insufficient"}:
@@ -190,7 +216,8 @@ def _run_analysis(
         explanation_markdown = f"### Claude explanation\n\n{MISSING_KEY_MESSAGE}"
     except AnthropicKeyRejectedError:
         explanation_markdown = f"### Claude explanation\n\n{REJECTED_KEY_MESSAGE}"
-    except RuntimeError:
+    except Exception as error:
+        _log_server_exception("Claude explanation", error)
         explanation_markdown = (
             "### Claude explanation\n\n"
             "Explanation unavailable. The Claude service could not complete this request."
@@ -240,9 +267,10 @@ def analyze_article(article_text: str, api_key: str) -> tuple[str, str, str, str
                 else None
             )
             outputs = _run_analysis(bounded_article, normalized_key, input_note)
-    except Exception:
+    except Exception as error:
+        _log_server_exception("Article analysis", error)
         outputs = _analysis_error_outputs(
-            "The analysis could not be completed. Try again with shorter text."
+            "The analysis could not be completed. Please try again."
         )
 
     if normalized_key:

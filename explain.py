@@ -13,10 +13,14 @@ MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
 The supplied classifier label is final. Do not reclassify it, question it, second-guess it,
 or imply that another label may be more accurate. Explain only how the supplied structured
-signals relate to that fixed decision. If NLI conflicts with the label, describe the conflict
-as context and explicitly state that it does not change the classifier label. Use plain English,
-avoid jargon and em dashes, and write two or three concise sentences. Do not infer article
-content, evidence details, or facts that were not supplied."""
+signals relate to that fixed decision. Every technical signal must be introduced by its
+plain-English meaning, immediately followed by its technical name in square brackets.
+Always cover these three signals with the plain-English wording first: how sure the classifier
+was [confidence], how consistent the classifier was across repeated runs [Monte Carlo dropout
+uncertainty], and how well the retrieved evidence agreed with the claim [NLI]. If NLI conflicts
+with the label, describe the conflict as context and explicitly state that it does not change
+the classifier label. Avoid unexplained jargon and em dashes, and write two or three concise
+sentences. Do not infer article content, evidence details, or facts that were not supplied."""
 
 
 class MissingAnthropicKeyError(RuntimeError):
@@ -76,10 +80,13 @@ def explain_decision(
     }
     prompt = (
         "Explain why the system reported the fixed classifier label using only these "
-        "signals. Treat higher MC Dropout uncertainty as greater model uncertainty. "
-        "Mention when the NLI evidence supports, refutes, or cannot resolve the label. "
-        "A conflicting NLI verdict is context only: state that it does not change the "
-        "classifier label, and do not imply the label is wrong.\n\n"
+        "signals. Cover how sure the classifier was [confidence], how consistent the "
+        "classifier was across repeated runs [Monte Carlo dropout uncertainty], and how "
+        "well the retrieved evidence agreed with the claim [NLI]. Treat higher Monte Carlo "
+        "dropout uncertainty as less repeated-run stability. Mention when NLI evidence "
+        "supports, refutes, or cannot resolve the label. A conflicting NLI verdict is "
+        "context only: state that it does not change the classifier label, and do not imply "
+        "the label is wrong.\n\n"
         f"Structured signals:\n{json.dumps(signals, indent=2)}"
     )
 
