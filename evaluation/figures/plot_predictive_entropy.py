@@ -10,6 +10,7 @@ from matplotlib.patches import Patch
 repo_root = Path(__file__).resolve().parents[2]
 arrays_dir = repo_root / 'evaluation' / 'mc_arrays'
 output_path = Path(__file__).with_name('predictive_entropy_boxplot.pdf')
+png_output_path = Path(__file__).with_name('predictive_entropy_boxplot.png')
 
 mean_probabilities = np.load(arrays_dir / 'mean_probabilities.npy')
 true_labels = np.load(arrays_dir / 'true_labels.npy')
@@ -67,9 +68,11 @@ ax.legend(handles=legend_items, loc='upper left', frameon=False)
 
 fig.tight_layout()
 fig.savefig(output_path, format='pdf', bbox_inches='tight')
+fig.savefig(png_output_path, format='png', dpi=300, bbox_inches='tight')
 plt.close(fig)
 
 print(f'correct entropy mean = {correct_mean:.4f}')
 print(f'incorrect entropy mean = {incorrect_mean:.4f}')
 print(f'mc ece (15 bins) = {mc_ece:.4f}')
-print(f'figure = {output_path}')
+print(f'pdf figure = {output_path}')
+print(f'png figure = {png_output_path}')
