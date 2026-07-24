@@ -132,7 +132,7 @@ every other notebook and script loads. LoRA cuts trainable parameters from ~109.
 cell still references `train_liar_df`, a leftover from the original LIAR proposal — the implemented
 pipeline uses WELFake, per the proposal-deviations table above.)*
 
-### `([Trained_vs_base.ipynb](https://github.com/KP-365/Fake_news/blob/main/Trained_vs_base.ipynb))` — ablation: fine-tuned vs base model
+### `[Trained_vs_base.ipynb](https://github.com/KP-365/Fake_news/blob/main/Trained_vs_base.ipynb)` — ablation: fine-tuned vs base model
 
 Does **not** train anything. Loads the trained checkpoint, spins up a fresh un-fine-tuned
 `roberta-base` (same architecture and tokenizer, random classification head), and evaluates both on
@@ -168,7 +168,7 @@ Single deterministic forward pass — establishes raw accuracy and compares agai
 transformer beats simple word-frequency baselines (TF-IDF+LR macro-F1 0.9521; majority 0.3559) — the
 "does it work, and is it worth it?" evidence.
 
-### `([eval_MCFakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_MCFakeNews.ipynb)` — MC Dropout / uncertainty evaluation
+### `[eval_MCFakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_MCFakeNews.ipynb)` — MC Dropout / uncertainty evaluation
 
 Builds on the baseline to quantify *uncertainty* and prove it's useful. Saves every output to
 `MC results/` (see [`MC results/README.md`](MC%20results/README.md)).
