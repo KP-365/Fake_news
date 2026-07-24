@@ -111,7 +111,7 @@ The completed single-reviewer faithfulness study is committed in
 Each notebook below is mapped section-by-section — what the code does, **why** it's there, and
 **what it gave us** — so the experimental story is easy to follow (and to defend in the viva).
 
-### `[scaffold_FakeNews_finn's_training.ipynb](https://github.com/KP-365/Fake_news/main/scaffold_FakeNews_finn's_training) — training (master scaffold)
+### `[scaffold_FakeNews_finn's_training.ipynb](https://github.com/KP-365/Fake_news/blob/main/scaffold_FakeNews_finn's_training.ipynb)) — training (master scaffold)
 
 The master notebook that produces the trained checkpoint. Training lives in the early sections;
 the later layers are scaffolded and were extracted into standalone scripts (`verify.py`,
@@ -153,7 +153,7 @@ the two models. It proves the LoRA fine-tuning is what creates the capability �
 (random head) scores near chance, the fine-tuned model does not. *This is an ablation, not a
 competitive baseline* (those live in `eval_FakeNews.ipynb §5`).
 
-### `eval_FakeNews.ipynb` — baseline evaluation
+### `([eval_FakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_FakeNews.ipynb)` — baseline evaluation
 
 Single deterministic forward pass — establishes raw accuracy and compares against simple baselines.
 
@@ -168,7 +168,7 @@ Single deterministic forward pass — establishes raw accuracy and compares agai
 transformer beats simple word-frequency baselines (TF-IDF+LR macro-F1 0.9521; majority 0.3559) — the
 "does it work, and is it worth it?" evidence.
 
-### `eval_MCFakeNews.ipynb` — MC Dropout / uncertainty evaluation
+### `([eval_MCFakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_MCFakeNews.ipynb)` — MC Dropout / uncertainty evaluation
 
 Builds on the baseline to quantify *uncertainty* and prove it's useful. Saves every output to
 `MC results/` (see [`MC results/README.md`](MC%20results/README.md)).
