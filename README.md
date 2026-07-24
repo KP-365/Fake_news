@@ -238,15 +238,6 @@ Runs classification, 30-pass MC Dropout, DDG + NLI verification, and the numbers
 The classifier label remains final; NLI is explanation context only. Without an Anthropic key, the
 command still prints every non-explanation result and a clear setup note.
 
-**Launch the local Gradio interface**
-```bash
-python3 app.py
-```
-Open http://127.0.0.1:7860. Loads the classifier once at startup; presents the fixed label,
-plain-language stability with the raw uncertainty value, context-only evidence links, NLI verdict,
-and Claude explanation. An optional accordion accepts a per-request Anthropic key and clears it
-after analysis.
-
 ## Run the evaluation notebooks
 
 Use a Colab GPU runtime, then **Runtime → Run all**.
