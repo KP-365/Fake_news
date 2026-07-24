@@ -1,7 +1,9 @@
 # Fake-News Classification, Verification, and Explanation
 
-**Live demo:** https://wf1212-fake-news-detector.hf.space (ZeroGPU; the Claude explanation is
+**Live demo:** ([Click Here](https://wf1212-fake-news-detector.hf.space) (ZeroGPU; the Claude explanation is
 optional and uses a bring-your-own Anthropic key).
+
+**NOTE - THE APPLICATION IS ONLY VISABLE IN LIGHT MODE PLEASE CHANGE YOUR DEVICE TO LIGHT MODE TO HAVE THE BEST EXPEIRENCE**
 
 ## Code submission quick start
 
@@ -109,7 +111,7 @@ The completed single-reviewer faithfulness study is committed in
 Each notebook below is mapped section-by-section — what the code does, **why** it's there, and
 **what it gave us** — so the experimental story is easy to follow (and to defend in the viva).
 
-### `scaffold_FakeNews_finn's_training.ipynb` — training (master scaffold)
+### `[scaffold_FakeNews_finn's_training.ipynb](https://github.com/KP-365/Fake_news/main/scaffold_FakeNews_finn's_training) — training (master scaffold)
 
 The master notebook that produces the trained checkpoint. Training lives in the early sections;
 the later layers are scaffolded and were extracted into standalone scripts (`verify.py`,
