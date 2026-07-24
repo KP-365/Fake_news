@@ -132,7 +132,7 @@ every other notebook and script loads. LoRA cuts trainable parameters from ~109.
 cell still references `train_liar_df`, a leftover from the original LIAR proposal — the implemented
 pipeline uses WELFake, per the proposal-deviations table above.)*
 
-### `Trained_vs_base.ipynb` — ablation: fine-tuned vs base model
+### `([Trained_vs_base.ipynb](https://github.com/KP-365/Fake_news/blob/main/Trained_vs_base.ipynb))` — ablation: fine-tuned vs base model
 
 Does **not** train anything. Loads the trained checkpoint, spins up a fresh un-fine-tuned
 `roberta-base` (same architecture and tokenizer, random classification head), and evaluates both on
@@ -153,7 +153,7 @@ the two models. It proves the LoRA fine-tuning is what creates the capability �
 (random head) scores near chance, the fine-tuned model does not. *This is an ablation, not a
 competitive baseline* (those live in `eval_FakeNews.ipynb §5`).
 
-### `([eval_FakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_FakeNews.ipynb)` — baseline evaluation
+### `([eval_FakeNews.ipynb](https://github.com/KP-365/Fake_news/blob/main/eval_FakeNews.ipynb))` — baseline evaluation
 
 Single deterministic forward pass — establishes raw accuracy and compares against simple baselines.
 
