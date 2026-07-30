@@ -4,7 +4,7 @@ torch==2.11.0
 datasets==5.0.0
 scikit-learn==1.8.0
 gradio==6.20.0
-spaces==0.51.0
+spaces==0.51.1
 anthropic==0.79.0
 python-dotenv==1.2.2
 numpy>=2.0,<3
