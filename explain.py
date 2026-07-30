@@ -14,16 +14,17 @@ MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
 The supplied label is final. Do not reclassify it, question it, second-guess it, or imply that
 another label may be more accurate. Explain only how the supplied structured signals relate to
-that fixed decision. Write exactly one concise paragraph with no bullets or line breaks. State
-every supplied display value and immediately explain it in plain English. In the user-facing
-paragraph, never use these technical terms: dropout, standard deviation, NLI, entailment, or
-contradiction. Describe confidence as the fixed system run's strength of preference for the label,
-not the chance that the label is correct. Describe repeated-check variation as consistency:
-smaller variation means more consistent results. Describe evidence scores as supporting and
-conflicting matches, not as truth
-probabilities or source-quality measures. Conflicting evidence is context only and does not change
-the final label. If evidence is insufficient, say that the evidence checks did not resolve the
-claim. Do not infer article content, evidence details, or facts that were not supplied."""
+that fixed decision. Write exactly four concise sentences in one paragraph, with no bullets or
+line breaks. State every supplied display value and immediately explain it in plain English. In
+the user-facing paragraph, never use these technical terms: dropout, standard deviation, NLI,
+entailment, or contradiction. Describe confidence as the fixed system run's strength of preference
+for the label, not the chance that the label is correct. Describe repeated-check variation as
+consistency: smaller variation means more consistent results. Describe evidence scores as
+supporting and opposing matches, not as truth probabilities or source-quality measures. A nonzero
+opposing match is not conflicting evidence. Only describe the overall evidence as conflicting when
+its verdict conflicts with the final classifier label, and state that it does not change the label.
+If evidence is insufficient, say that the evidence checks did not resolve the claim. Do not infer
+article content, evidence details, or facts that were not supplied."""
 
 FORBIDDEN_OUTPUT_TERMS = (
     "dropout",
@@ -62,6 +63,12 @@ def _required_display_values(
     )
 
 
+def _evidence_conflicts_with_label(classifier_label: str, nli_verdict: str) -> bool:
+    return (nli_verdict == "supported" and classifier_label == "fake") or (
+        nli_verdict == "refuted" and classifier_label == "real"
+    )
+
+
 def _display_guidance(
     classifier_label: str,
     confidence: float,
@@ -72,53 +79,48 @@ def _display_guidance(
     evidence_count: int,
 ) -> str:
     """Build plain-language display guidance while retaining internal metric inputs."""
-    confidence_display, variation_display, support_display, conflict_display = (
+    confidence_display, variation_display, support_display, opposition_display = (
         _required_display_values(
             confidence, mc_uncertainty, max_entailment, max_contradiction
         )
     )
     if nli_verdict == "insufficient":
         verdict_guidance = (
-            "The evidence verdict was insufficient: the evidence checks did not resolve the "
-            "claim. Do not treat low or zero scores as affirmative evidence."
+            f"Across {evidence_count} retrieved passages, the evidence checks did not resolve "
+            "the claim; low or zero scores are not affirmative evidence."
+        )
+    elif _evidence_conflicts_with_label(classifier_label, nli_verdict):
+        verdict_action = "supported" if nli_verdict == "supported" else "opposed"
+        verdict_guidance = (
+            f"Across {evidence_count} retrieved passages, the overall evidence {verdict_action} "
+            "the claim and therefore conflicts with the fixed label, but it is context only "
+            "and does not change that label."
         )
     else:
-        verdict_meaning = (
-            "at least one retrieved passage supported the claim"
-            if nli_verdict == "supported"
-            else "at least one retrieved passage conflicted with the claim"
-        )
+        verdict_action = "supported" if nli_verdict == "supported" else "opposed"
         verdict_guidance = (
-            f"The evidence verdict was {nli_verdict}, meaning {verdict_meaning}."
+            f"Across {evidence_count} retrieved passages, the overall evidence {verdict_action} "
+            "the claim and is consistent with the fixed label."
         )
-        conflicts_with_label = (
-            nli_verdict == "supported" and classifier_label == "fake"
-        ) or (nli_verdict == "refuted" and classifier_label == "real")
-        if conflicts_with_label:
-            verdict_guidance += (
-                " This conflicts with the fixed label; state immediately that it is context "
-                "only and does not change that label."
-            )
 
     return (
-        "Use these exact user-facing values and meanings in the paragraph:\n"
-        f"- {confidence_display} confidence: the fixed system run's strength of preference "
-        "for the selected label; it is not the chance that the label is correct.\n"
-        f"- {variation_display} repeated-check variation: this shows how much the fake score "
-        "varied across 30 checks; smaller variation means more consistent results.\n"
-        f"- {support_display} strongest supporting match: the retrieved passage that most "
-        "strongly supported the claim.\n"
-        f"- {conflict_display} strongest conflicting match: the retrieved passage that most "
-        "strongly conflicted with the claim.\n"
-        "The two evidence percentages are match scores, not truth probabilities or "
-        f"source-quality ratings. {verdict_guidance} Evidence passages retrieved: "
-        f"{evidence_count}."
+        "Follow this exact four-sentence structure in one paragraph:\n"
+        f"1. The final label has {confidence_display} confidence, meaning this is the fixed "
+        "system run's strength of preference, not its chance of being correct.\n"
+        f"2. Repeated checks varied by {variation_display}, meaning smaller variation is more "
+        "consistent.\n"
+        f"3. The strongest supporting match was {support_display}, showing the measured support, "
+        f"and the strongest opposing match was {opposition_display}, showing the measured "
+        "opposition; these are match scores, not truth probabilities or source-quality ratings.\n"
+        f"4. {verdict_guidance}"
     )
 
 
 def _validate_explanation_output(
     explanation: str,
     *,
+    classifier_label: str,
+    nli_verdict: str,
     confidence: float,
     mc_uncertainty: float,
     max_entailment: float,
@@ -150,6 +152,15 @@ def _validate_explanation_output(
         raise RuntimeError(
             "Anthropic explanation used forbidden technical term(s): "
             + ", ".join(forbidden_terms)
+        )
+
+    if not _evidence_conflicts_with_label(classifier_label, nli_verdict) and re.search(
+        r"\bconflicting evidence\b|\bevidence (?:conflicts|conflicted)\b",
+        normalized_explanation,
+        re.IGNORECASE,
+    ):
+        raise RuntimeError(
+            "Anthropic explanation mischaracterized an opposing score as conflicting evidence"
         )
     return normalized_explanation
 
@@ -237,6 +248,8 @@ def explain_decision(
         raise RuntimeError("Anthropic returned no explanation text")
     return _validate_explanation_output(
         explanation,
+        classifier_label=classifier_label,
+        nli_verdict=nli_verdict,
         confidence=confidence,
         mc_uncertainty=mc_uncertainty,
         max_entailment=max_entailment,

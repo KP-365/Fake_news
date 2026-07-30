@@ -25,15 +25,29 @@ class ExplanationPromptTests(unittest.TestCase):
 
     def request_explanation(self, **overrides: object) -> tuple[Mock, Mock, str]:
         signals = {**self.signals, **overrides}
+        verdict = signals["nli_verdict"]
+        conflicts_with_label = explain._evidence_conflicts_with_label(
+            signals["classifier_label"], verdict
+        )
+        if verdict == "insufficient":
+            verdict_sentence = "Overall, the evidence checks did not resolve the claim."
+        elif conflicts_with_label:
+            verdict_sentence = (
+                "Overall, the evidence conflicts with the fixed label, but it is context only "
+                "and does not change that label."
+            )
+        else:
+            verdict_sentence = "Overall, the evidence is consistent with the fixed label."
+
         explanation_text = (
-            f"The system gave the final label {signals['classifier_confidence']:.1%} "
-            "confidence, meaning this was its score rather than the chance of being correct. "
+            f"The final label has {signals['classifier_confidence']:.1%} confidence, meaning "
+            "this is the system's preference rather than its chance of being correct. "
             f"Repeated checks varied by {signals['mc_dropout_uncertainty'] * 100:.1f} "
             "percentage points, meaning smaller variation is more consistent. "
-            f"The strongest supporting match was {signals['max_entailment_score']:.1%}, "
-            "meaning one passage supported the claim most strongly, while the strongest "
-            f"conflicting match was {signals['max_contradiction_score']:.1%}, meaning one "
-            "passage conflicted most strongly."
+            f"The strongest supporting match was {signals['max_entailment_score']:.1%}, while "
+            f"the strongest opposing match was {signals['max_contradiction_score']:.1%}; these "
+            "are match scores rather than truth probabilities. "
+            f"{verdict_sentence}"
         )
         client = Mock()
         client.messages.create.return_value = SimpleNamespace(
@@ -58,34 +72,28 @@ class ExplanationPromptTests(unittest.TestCase):
         system_prompt = " ".join(request["system"].split())
         user_prompt = " ".join(request["messages"][0]["content"].split())
 
-        self.assertIn("exactly one concise paragraph", system_prompt)
+        self.assertIn("exactly four concise sentences", system_prompt)
         self.assertIn(
-            "91.0% confidence: the fixed system run's strength of preference",
-            user_prompt,
+            "The final label has 91.0% confidence", user_prompt
         )
         self.assertIn(
-            "4.0 percentage points repeated-check variation: this shows how much the fake "
-            "score varied across 30 checks",
-            user_prompt,
+            "Repeated checks varied by 4.0 percentage points", user_prompt
         )
         self.assertIn(
-            "82.0% strongest supporting match",
-            user_prompt,
+            "strongest supporting match was 82.0%", user_prompt
         )
         self.assertIn(
-            "7.0% strongest conflicting match",
-            user_prompt,
+            "strongest opposing match was 7.0%", user_prompt
         )
         self.assertIn(
-            "The evidence verdict was supported, meaning at least one retrieved passage "
-            "supported the claim",
+            "overall evidence supported the claim and is consistent with the fixed label",
             user_prompt,
         )
         for forbidden_term in explain.FORBIDDEN_OUTPUT_TERMS:
             self.assertNotIn(forbidden_term, result.casefold())
 
     def test_conflicting_evidence_is_context_not_an_override(self) -> None:
-        _, client, _ = self.request_explanation(
+        _, client, result = self.request_explanation(
             nli_verdict="refuted",
             max_entailment_score=0.12,
             max_contradiction_score=0.86,
@@ -94,17 +102,15 @@ class ExplanationPromptTests(unittest.TestCase):
             client.messages.create.call_args.kwargs["messages"][0]["content"].split()
         )
 
-        self.assertIn("86.0% strongest conflicting match", user_prompt)
+        self.assertIn("86.0%", user_prompt)
         self.assertIn(
-            "The evidence verdict was refuted, meaning at least one retrieved passage "
-            "conflicted with the claim",
+            "overall evidence opposed the claim and therefore conflicts with the fixed label",
             user_prompt,
         )
         self.assertIn(
-            "This conflicts with the fixed label; state immediately that it is context only "
-            "and does not change that label",
-            user_prompt,
+            "context only and does not change that label", user_prompt
         )
+        self.assertIn("evidence conflicts with the fixed label", result)
 
     def test_insufficient_evidence_does_not_turn_scores_into_a_conclusion(self) -> None:
         _, client, _ = self.request_explanation(
@@ -117,13 +123,26 @@ class ExplanationPromptTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "The evidence verdict was insufficient: the evidence checks did not resolve the "
-            "claim",
-            user_prompt,
+            "the evidence checks did not resolve the claim", user_prompt
         )
         self.assertIn(
-            "Do not treat low or zero scores as affirmative evidence", user_prompt
+            "low or zero scores are not affirmative evidence", user_prompt
         )
+
+    def test_real_supported_opposing_score_is_not_called_conflicting_evidence(self) -> None:
+        _, client, result = self.request_explanation(
+            classifier_label="real",
+            nli_verdict="supported",
+            max_entailment_score=0.986,
+            max_contradiction_score=0.014,
+        )
+        user_prompt = " ".join(
+            client.messages.create.call_args.kwargs["messages"][0]["content"].split()
+        )
+
+        self.assertIn("strongest opposing match was 1.4%", user_prompt)
+        self.assertNotIn("conflicting evidence", result.casefold())
+        self.assertIn("evidence is consistent with the fixed label", result)
 
     def test_request_sends_only_structured_signals_not_private_text_or_key(self) -> None:
         client_class, client, result = self.request_explanation()
@@ -145,6 +164,8 @@ class ExplanationPromptTests(unittest.TestCase):
 
 class ExplanationOutputValidationTests(unittest.TestCase):
     metrics = {
+        "classifier_label": "real",
+        "nli_verdict": "supported",
         "confidence": 0.91,
         "mc_uncertainty": 0.04,
         "max_entailment": 0.82,
@@ -153,8 +174,8 @@ class ExplanationOutputValidationTests(unittest.TestCase):
     valid_explanation = (
         "The final label had 91.0% confidence, meaning the system preferred that label. "
         "Repeated checks varied by 4.0 percentage points, meaning the result was consistent. "
-        "The strongest supporting match was 82.0%, meaning one passage supported the claim, "
-        "and the strongest conflicting match was 7.0%, meaning another passage conflicted."
+        "The strongest supporting match was 82.0%, and the strongest opposing match was 7.0%, "
+        "so both measured directions are visible. Overall, the evidence supported the label."
     )
 
     def test_accepts_one_plain_paragraph_with_every_display_value(self) -> None:
@@ -177,6 +198,13 @@ class ExplanationOutputValidationTests(unittest.TestCase):
     def test_rejects_forbidden_technical_terms(self) -> None:
         explanation = self.valid_explanation + " It came from dropout checks."
         with self.assertRaisesRegex(RuntimeError, "forbidden technical term.*dropout"):
+            explain._validate_explanation_output(explanation, **self.metrics)
+
+    def test_rejects_conflicting_evidence_for_an_aligned_verdict(self) -> None:
+        explanation = self.valid_explanation.replace(
+            "evidence supported the label", "conflicting evidence supported the label"
+        )
+        with self.assertRaisesRegex(RuntimeError, "mischaracterized an opposing score"):
             explain._validate_explanation_output(explanation, **self.metrics)
 
 if __name__ == "__main__":
