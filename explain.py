@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 from dotenv import load_dotenv
@@ -11,16 +12,26 @@ from dotenv import load_dotenv
 MODEL_NAME = "claude-haiku-4-5"
 MAX_TOKENS = 220
 SYSTEM_PROMPT = """You explain an automated fake-news system's completed decision.
-The supplied classifier label is final. Do not reclassify it, question it, second-guess it,
-or imply that another label may be more accurate. Explain only how the supplied structured
-signals relate to that fixed decision. Every technical signal must be introduced by its
-plain-English meaning, immediately followed by its technical name in square brackets.
-Always cover these three signals with the plain-English wording first: how sure the classifier
-was [confidence], how consistent the classifier was across repeated runs [Monte Carlo dropout
-uncertainty], and how well the retrieved evidence agreed with the claim [NLI]. If NLI conflicts
-with the label, describe the conflict as context and explicitly state that it does not change
-the classifier label. Avoid unexplained jargon and em dashes, and write two or three concise
-sentences. Do not infer article content, evidence details, or facts that were not supplied."""
+The supplied label is final. Do not reclassify it, question it, second-guess it, or imply that
+another label may be more accurate. Explain only how the supplied structured signals relate to
+that fixed decision. Write exactly one concise paragraph with no bullets or line breaks. State
+every supplied display value and immediately explain it in plain English. In the user-facing
+paragraph, never use these technical terms: dropout, standard deviation, NLI, entailment, or
+contradiction. Describe confidence as the fixed system run's strength of preference for the label,
+not the chance that the label is correct. Describe repeated-check variation as consistency:
+smaller variation means more consistent results. Describe evidence scores as supporting and
+conflicting matches, not as truth
+probabilities or source-quality measures. Conflicting evidence is context only and does not change
+the final label. If evidence is insufficient, say that the evidence checks did not resolve the
+claim. Do not infer article content, evidence details, or facts that were not supplied."""
+
+FORBIDDEN_OUTPUT_TERMS = (
+    "dropout",
+    "standard deviation",
+    "nli",
+    "entailment",
+    "contradiction",
+)
 
 
 class MissingAnthropicKeyError(RuntimeError):
@@ -34,6 +45,113 @@ class AnthropicKeyRejectedError(RuntimeError):
 def _validate_probability(name: str, value: float) -> None:
     if not 0.0 <= value <= 1.0:
         raise ValueError(f"{name} must be between 0 and 1")
+
+
+def _required_display_values(
+    confidence: float,
+    mc_uncertainty: float,
+    max_entailment: float,
+    max_contradiction: float,
+) -> tuple[str, str, str, str]:
+    """Return the exact user-facing values derived from the internal metrics."""
+    return (
+        f"{confidence:.1%}",
+        f"{mc_uncertainty * 100:.1f} percentage points",
+        f"{max_entailment:.1%}",
+        f"{max_contradiction:.1%}",
+    )
+
+
+def _display_guidance(
+    classifier_label: str,
+    confidence: float,
+    mc_uncertainty: float,
+    nli_verdict: str,
+    max_entailment: float,
+    max_contradiction: float,
+    evidence_count: int,
+) -> str:
+    """Build plain-language display guidance while retaining internal metric inputs."""
+    confidence_display, variation_display, support_display, conflict_display = (
+        _required_display_values(
+            confidence, mc_uncertainty, max_entailment, max_contradiction
+        )
+    )
+    if nli_verdict == "insufficient":
+        verdict_guidance = (
+            "The evidence verdict was insufficient: the evidence checks did not resolve the "
+            "claim. Do not treat low or zero scores as affirmative evidence."
+        )
+    else:
+        verdict_meaning = (
+            "at least one retrieved passage supported the claim"
+            if nli_verdict == "supported"
+            else "at least one retrieved passage conflicted with the claim"
+        )
+        verdict_guidance = (
+            f"The evidence verdict was {nli_verdict}, meaning {verdict_meaning}."
+        )
+        conflicts_with_label = (
+            nli_verdict == "supported" and classifier_label == "fake"
+        ) or (nli_verdict == "refuted" and classifier_label == "real")
+        if conflicts_with_label:
+            verdict_guidance += (
+                " This conflicts with the fixed label; state immediately that it is context "
+                "only and does not change that label."
+            )
+
+    return (
+        "Use these exact user-facing values and meanings in the paragraph:\n"
+        f"- {confidence_display} confidence: the fixed system run's strength of preference "
+        "for the selected label; it is not the chance that the label is correct.\n"
+        f"- {variation_display} repeated-check variation: this shows how much the fake score "
+        "varied across 30 checks; smaller variation means more consistent results.\n"
+        f"- {support_display} strongest supporting match: the retrieved passage that most "
+        "strongly supported the claim.\n"
+        f"- {conflict_display} strongest conflicting match: the retrieved passage that most "
+        "strongly conflicted with the claim.\n"
+        "The two evidence percentages are match scores, not truth probabilities or "
+        f"source-quality ratings. {verdict_guidance} Evidence passages retrieved: "
+        f"{evidence_count}."
+    )
+
+
+def _validate_explanation_output(
+    explanation: str,
+    *,
+    confidence: float,
+    mc_uncertainty: float,
+    max_entailment: float,
+    max_contradiction: float,
+) -> str:
+    """Require one safe paragraph containing every derived display value."""
+    normalized_explanation = explanation.strip()
+    if not normalized_explanation or len(normalized_explanation.splitlines()) != 1:
+        raise RuntimeError("Anthropic explanation must be exactly one paragraph")
+
+    required_values = _required_display_values(
+        confidence, mc_uncertainty, max_entailment, max_contradiction
+    )
+    missing_values = [
+        value for value in required_values if value not in normalized_explanation
+    ]
+    if missing_values:
+        raise RuntimeError(
+            "Anthropic explanation omitted required display value(s): "
+            + ", ".join(missing_values)
+        )
+
+    forbidden_terms = [
+        term
+        for term in FORBIDDEN_OUTPUT_TERMS
+        if re.search(rf"\b{re.escape(term)}\b", normalized_explanation, re.IGNORECASE)
+    ]
+    if forbidden_terms:
+        raise RuntimeError(
+            "Anthropic explanation used forbidden technical term(s): "
+            + ", ".join(forbidden_terms)
+        )
+    return normalized_explanation
 
 
 def explain_decision(
@@ -78,15 +196,21 @@ def explain_decision(
         "max_contradiction_score": max_contradiction,
         "evidence_count": evidence_count,
     }
+    display_guidance = _display_guidance(
+        classifier_label,
+        confidence,
+        mc_uncertainty,
+        nli_verdict,
+        max_entailment,
+        max_contradiction,
+        evidence_count,
+    )
     prompt = (
-        "Explain why the system reported the fixed classifier label using only these "
-        "signals. Cover how sure the classifier was [confidence], how consistent the "
-        "classifier was across repeated runs [Monte Carlo dropout uncertainty], and how "
-        "well the retrieved evidence agreed with the claim [NLI]. Treat higher Monte Carlo "
-        "dropout uncertainty as less repeated-run stability. Mention when NLI evidence "
-        "supports, refutes, or cannot resolve the label. A conflicting NLI verdict is "
-        "context only: state that it does not change the classifier label, and do not imply "
-        "the label is wrong.\n\n"
+        "Explain the fixed classifier label in exactly one paragraph using only the "
+        "structured signals and the required user-facing wording below. Put each number's "
+        "plain-English interpretation immediately after that number. Do not omit or rename "
+        "a metric.\n\n"
+        f"{display_guidance}\n\n"
         f"Structured signals:\n{json.dumps(signals, indent=2)}"
     )
 
@@ -111,7 +235,13 @@ def explain_decision(
     ).strip()
     if not explanation:
         raise RuntimeError("Anthropic returned no explanation text")
-    return explanation
+    return _validate_explanation_output(
+        explanation,
+        confidence=confidence,
+        mc_uncertainty=mc_uncertainty,
+        max_entailment=max_entailment,
+        max_contradiction=max_contradiction,
+    )
 
 
 def main() -> int:
