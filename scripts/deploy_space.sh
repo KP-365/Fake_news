@@ -23,6 +23,12 @@ git -C "$space_checkout" remote rename origin space
 git -C "$repo_root" archive main | tar -x -C "$space_checkout"
 cp "$repo_root/space/README.md" "$space_checkout/README.md"
 
+# Hugging Face rejects raw binary assets; normalize every deployed PDF and PNG through Xet.
+cat >> "$space_checkout/.gitattributes" <<'EOF'
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+EOF
+git -C "$space_checkout" add --renormalize .
 git -C "$space_checkout" add -A
 
 # These files must be Xet/LFS pointers in the Space commit, not raw binary blobs.
